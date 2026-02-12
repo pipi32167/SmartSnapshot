@@ -39,7 +39,9 @@
   }
 
   function handleKeyDown(e) {
-    if (e.key === 'Escape' && state.isActive) stopSelection();
+    if (e.key === 'Escape' && state.isActive) {
+      stopSelection();
+    }
   }
 
   async function startSelection(domain) {
@@ -161,6 +163,12 @@
     document.querySelectorAll('.smartsnapshot-hover-label').forEach(l => l.remove());
   }
 
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
   function isDescendantOfSelected(element) {
     for (const selected of state.selectedElements) {
       if (selected.contains(element) && selected !== element) return true;
@@ -230,14 +238,18 @@
                 state.highlightedElements.add(el);
               }
             });
-          } catch (e) {}
+          } catch (e) {
+            console.warn('SmartSnapshot: Failed to load saved selector', e);
+          }
         });
         if (state.selectedElements.size > 0) {
           updatePreview();
           updateButtons();
         }
       }
-    } catch (error) {}
+    } catch (error) {
+      console.warn('SmartSnapshot: Failed to load saved selections', error);
+    }
   }
 
   async function saveSelections() {
@@ -262,7 +274,9 @@
       updatePreview();
       updateButtons();
       showNotification('已忘记此域名的选择');
-    } catch (error) {}
+    } catch (error) {
+      console.warn('SmartSnapshot: Failed to forget selections', error);
+    }
   }
 
   /**
@@ -402,7 +416,7 @@
       <div class="smartsnapshot-preview-header">
         <span title="${tags}">${selectedArray.length} 个元素</span>
         <div class="smartsnapshot-preview-actions">
-          ${selectedArray.map((el, i) => `<button class="smartsnapshot-remove-item" data-index="${i}">${el.tagName.toLowerCase()} ✕</button>`).join('')}
+          ${selectedArray.map((el, i) => `<button class="smartsnapshot-remove-item" data-index="${i}">${escapeHtml(el.tagName.toLowerCase())} ✕</button>`).join('')}
         </div>
       </div>
       <div class="smartsnapshot-preview-content">
@@ -610,6 +624,18 @@
         dataUrl: blobUrl,
         filename: filename
       }, (response) => {
+        if (chrome.runtime.lastError) {
+          console.error('SmartSnapshot: Runtime error', chrome.runtime.lastError);
+          showNotification('截图保存失败', 'error');
+          if (state.sidebar) state.sidebar.style.visibility = 'visible';
+          selectedArray.forEach(el => el.classList.add(SELECTED_CLASS));
+          state.isProcessing = false;
+          if (screenshotBtn) {
+            screenshotBtn.textContent = '📷 截图';
+            screenshotBtn.disabled = false;
+          }
+          return;
+        }
         URL.revokeObjectURL(blobUrl);
         
         if (state.sidebar) state.sidebar.style.visibility = 'visible';
