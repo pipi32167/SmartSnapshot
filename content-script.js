@@ -306,17 +306,43 @@
    */
   function extractStyles() {
     let css = '';
+    const baseUrl = window.location.href;
+    
     try {
       for (const sheet of document.styleSheets) {
         try {
           for (const rule of sheet.cssRules) {
-            css += rule.cssText + '\n';
+            let cssText = rule.cssText;
+            // 将 CSS 中的相对 URL 转换为绝对 URL
+            cssText = cssText.replace(/url\(['"]?([^'"\)]+)['"]?\)/g, (match, url) => {
+              if (url.startsWith('data:') || url.startsWith('http://') || url.startsWith('https://') || url.startsWith('//')) {
+                return match;
+              }
+              try {
+                return 'url("' + new URL(url, baseUrl).href + '")';
+              } catch (e) {
+                return match;
+              }
+            });
+            css += cssText + '\n';
           }
         } catch (e) {
           // 跨域样式表无法访问，尝试通过 ownerNode 获取
           try {
             if (sheet.ownerNode && sheet.ownerNode.textContent) {
-              css += sheet.ownerNode.textContent + '\n';
+              let text = sheet.ownerNode.textContent;
+              // 也转换这些样式中的 URL
+              text = text.replace(/url\(['"]?([^'"\)]+)['"]?\)/g, (match, url) => {
+                if (url.startsWith('data:') || url.startsWith('http://') || url.startsWith('https://') || url.startsWith('//')) {
+                  return match;
+                }
+                try {
+                  return 'url("' + new URL(url, baseUrl).href + '")';
+                } catch (e) {
+                  return match;
+                }
+              });
+              css += text + '\n';
             }
           } catch (err) {}
         }
@@ -340,11 +366,45 @@
     const clone = element.cloneNode(true);
     const baseUrl = window.location.href;
     
-    // 修复图片路径
+    // 修复图片路径 - 使用 getAttribute 获取原始值
     clone.querySelectorAll('img').forEach(img => {
-      if (img.src && !img.src.startsWith('data:')) {
+      // 移除懒加载，确保图片立即加载
+      img.removeAttribute('loading');
+      
+      // 处理 src
+      const src = img.getAttribute('src');
+      if (src && !src.startsWith('data:')) {
         try {
-          img.src = new URL(img.src, baseUrl).href;
+          img.src = new URL(src, baseUrl).href;
+        } catch (e) {}
+      }
+      // 处理 srcset
+      const srcset = img.getAttribute('srcset');
+      if (srcset) {
+        try {
+          const newSrcset = srcset.split(',').map(part => {
+            const [url, descriptor] = part.trim().split(/\s+/);
+            return new URL(url, baseUrl).href + (descriptor ? ' ' + descriptor : '');
+          }).join(', ');
+          img.setAttribute('srcset', newSrcset);
+        } catch (e) {}
+      }
+      // 添加 crossorigin 属性尝试解决 CORS 问题
+      if (!img.hasAttribute('crossorigin')) {
+        img.setAttribute('crossorigin', 'anonymous');
+      }
+    });
+    
+    // 处理 picture 元素中的 source
+    clone.querySelectorAll('source').forEach(source => {
+      const srcset = source.getAttribute('srcset');
+      if (srcset) {
+        try {
+          const newSrcset = srcset.split(',').map(part => {
+            const [url, descriptor] = part.trim().split(/\s+/);
+            return new URL(url, baseUrl).href + (descriptor ? ' ' + descriptor : '');
+          }).join(', ');
+          source.setAttribute('srcset', newSrcset);
         } catch (e) {}
       }
     });
@@ -521,7 +581,7 @@
   }
 
   /**
-   * 使用 iframe + html2canvas 截图
+   * 打开预览页面展示 HTML 内容
    */
   async function takeScreenshot() {
     if (state.selectedElements.size === 0 || state.isProcessing) return;
@@ -533,21 +593,9 @@
       screenshotBtn.disabled = true;
     }
 
-    // 隐藏 sidebar
-    if (state.sidebar) state.sidebar.style.visibility = 'hidden';
-    
     const selectedArray = Array.from(state.selectedElements);
-    selectedArray.forEach(el => el.classList.remove(SELECTED_CLASS));
     
-    // 等待渲染
-    await new Promise(r => setTimeout(r, 100));
-
-    let tempIframe = null;
     try {
-      if (typeof html2canvas !== 'function') {
-        throw new Error('html2canvas is not available in content script');
-      }
-
       // 计算边界
       let minX = Infinity, minY = Infinity, maxX = 0, maxY = 0;
       selectedArray.forEach(el => {
@@ -568,14 +616,7 @@
       const totalW = maxX - minX;
       const totalH = maxY - minY;
 
-      // 创建临时 iframe
-      const iframe = document.createElement('iframe');
-      iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:' + totalW + 'px;height:' + totalH + 'px;visibility:hidden;';
-      document.body.appendChild(iframe);
-      tempIframe = iframe;
-
       const css = extractStyles();
-      const doc = iframe.contentDocument;
       
       // 获取页面根元素的计算样式用于字体继承
       const rootStyle = window.getComputedStyle(document.body);
@@ -583,8 +624,8 @@
       const baseFontSize = rootStyle.fontSize || '16px';
       const baseLineHeight = rootStyle.lineHeight || 'normal';
       
-      doc.open();
-      doc.write(`
+      // 构建 HTML 内容
+      const htmlContent = `
         <!DOCTYPE html>
         <html>
         <head>
@@ -632,62 +673,26 @@
           </div>
         </body>
         </html>
-      `);
-      doc.close();
+      `;
 
-      // 等待 iframe 加载完成（包括图片）
-      await waitForResources(doc);
-
-      // 使用 html2canvas 截图 iframe 内容
-      const container = doc.querySelector('.smartsnapshot-container');
-      const canvas = await html2canvas(container, {
-        scale: 2,
-        useCORS: false,
-        allowTaint: false,
-        backgroundColor: '#ffffff',
-        logging: false,
-        foreignObjectRendering: false,
-        width: totalW,
-        height: totalH,
-        windowWidth: totalW,
-        windowHeight: totalH
-      });
-
-      // 移除临时 iframe
-      iframe.remove();
-
-      // 下载
-      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-      const blobUrl = URL.createObjectURL(blob);
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
       const filename = `smartsnapshot-${state.currentDomain}-${timestamp}.png`;
 
+      // 发送给 background 打开预览页面
       chrome.runtime.sendMessage({
-        action: 'downloadScreenshot',
-        dataUrl: blobUrl,
-        filename: filename
+        action: 'showPreview',
+        htmlContent: htmlContent,
+        filename: filename,
+        width: totalW,
+        height: totalH
       }, (response) => {
         if (chrome.runtime.lastError) {
           console.error('SmartSnapshot: Runtime error', chrome.runtime.lastError);
-          showNotification('截图保存失败', 'error');
-          if (state.sidebar) state.sidebar.style.visibility = 'visible';
-          selectedArray.forEach(el => el.classList.add(SELECTED_CLASS));
-          state.isProcessing = false;
-          if (screenshotBtn) {
-            screenshotBtn.textContent = '📷 截图';
-            screenshotBtn.disabled = false;
-          }
-          return;
-        }
-        URL.revokeObjectURL(blobUrl);
-        
-        if (state.sidebar) state.sidebar.style.visibility = 'visible';
-        selectedArray.forEach(el => el.classList.add(SELECTED_CLASS));
-        
-        if (response?.success) {
-          showNotification('截图已保存');
+          showNotification('预览打开失败', 'error');
+        } else if (!response?.success) {
+          showNotification('预览打开失败', 'error');
         } else {
-          showNotification('截图保存失败', 'error');
+          showNotification('预览页面已打开');
         }
         
         state.isProcessing = false;
@@ -700,12 +705,6 @@
     } catch (error) {
       console.error('Screenshot failed:', error);
       showNotification('截图失败: ' + error.message, 'error');
-      if (tempIframe && tempIframe.isConnected) {
-        tempIframe.remove();
-      }
-      
-      if (state.sidebar) state.sidebar.style.visibility = 'visible';
-      selectedArray.forEach(el => el.classList.add(SELECTED_CLASS));
       
       state.isProcessing = false;
       if (screenshotBtn) {

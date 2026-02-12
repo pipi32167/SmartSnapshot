@@ -38,7 +38,7 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["styles.css", "html2canvas.min.js"],
+      "resources": ["styles.css", "html2canvas.min.js", "preview.html", "preview.js"],
       "matches": ["<all_urls>"]
     }
   ]

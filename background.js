@@ -111,5 +111,26 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true; // Keep message channel open for async
   }
 
+  if (request.action === 'showPreview') {
+    // 将预览数据存入 storage，然后打开预览页面
+    const { htmlContent, filename, width, height } = request;
+    
+    // 保存预览数据到 storage
+    chrome.storage.local.set({
+      previewData: { htmlContent, filename, width, height }
+    }).then(() => {
+      // 打开预览页面
+      const previewUrl = chrome.runtime.getURL('preview.html');
+      return chrome.tabs.create({ url: previewUrl });
+    }).then(() => {
+      sendResponse({ success: true });
+    }).catch((error) => {
+      console.error('Failed to open preview:', error);
+      sendResponse({ success: false, error: error.message });
+    });
+    
+    return true; // Keep message channel open for async
+  }
+
   return false;
 });
