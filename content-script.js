@@ -542,7 +542,12 @@
     // 等待渲染
     await new Promise(r => setTimeout(r, 100));
 
+    let tempIframe = null;
     try {
+      if (typeof html2canvas !== 'function') {
+        throw new Error('html2canvas is not available in content script');
+      }
+
       // 计算边界
       let minX = Infinity, minY = Infinity, maxX = 0, maxY = 0;
       selectedArray.forEach(el => {
@@ -567,6 +572,7 @@
       const iframe = document.createElement('iframe');
       iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:' + totalW + 'px;height:' + totalH + 'px;visibility:hidden;';
       document.body.appendChild(iframe);
+      tempIframe = iframe;
 
       const css = extractStyles();
       const doc = iframe.contentDocument;
@@ -694,6 +700,9 @@
     } catch (error) {
       console.error('Screenshot failed:', error);
       showNotification('截图失败: ' + error.message, 'error');
+      if (tempIframe && tempIframe.isConnected) {
+        tempIframe.remove();
+      }
       
       if (state.sidebar) state.sidebar.style.visibility = 'visible';
       selectedArray.forEach(el => el.classList.add(SELECTED_CLASS));
