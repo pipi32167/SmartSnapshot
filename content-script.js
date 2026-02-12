@@ -93,7 +93,7 @@
     state.sidebar = sidebar;
     state.previewContainer = document.getElementById(PREVIEW_CONTAINER_ID);
     bindSidebarEvents();
-    document.body.style.marginRight = '320px';
+    document.body.style.marginRight = '450px';
   }
 
   function bindSidebarEvents() {
@@ -403,9 +403,11 @@
     minX -= padding; minY -= padding; maxX += padding; maxY += padding;
     const totalW = maxX - minX, totalH = maxY - minY;
     
-    // 计算缩放
-    const containerW = 280, containerH = 350;
-    const scale = Math.min(containerW / totalW, containerH / totalH, 1);
+    // 计算缩放 - 使用更大的预览区域，设置最小缩放比例
+    const containerW = 400, containerH = 500;
+    const minScale = 0.4; // 最小缩放比例，防止预览太小
+    let scale = Math.min(containerW / totalW, containerH / totalH, 1);
+    scale = Math.max(scale, minScale); // 确保至少 minScale 的缩放
 
     // 创建包装器
     const wrapper = document.createElement('div');
@@ -427,6 +429,12 @@
     const iframe = wrapper.querySelector('iframe');
     const css = extractStyles();
     
+    // 获取页面根元素的计算样式用于字体继承
+    const rootStyle = window.getComputedStyle(document.body);
+    const baseFontFamily = rootStyle.fontFamily || '-apple-system, BlinkMacSystemFont, sans-serif';
+    const baseFontSize = rootStyle.fontSize || '16px';
+    const baseLineHeight = rootStyle.lineHeight || 'normal';
+    
     // 构建 HTML 内容
     const htmlContent = `
       <!DOCTYPE html>
@@ -435,11 +443,21 @@
         <meta charset="UTF-8">
         <style>
           * { margin: 0; padding: 0; box-sizing: border-box; }
+          html {
+            font-family: ${escapeHtml(baseFontFamily)};
+            font-size: ${escapeHtml(baseFontSize)};
+            line-height: ${escapeHtml(baseLineHeight)};
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+          }
           body { 
             background: white; 
             overflow: hidden;
             width: ${totalW}px;
             height: ${totalH}px;
+            font-family: inherit;
+            font-size: inherit;
+            line-height: inherit;
           }
           .smartsnapshot-container {
             position: relative;
@@ -463,7 +481,7 @@
             const left = rect.left + sx - minX;
             const top = rect.top + sy - minY;
             const clone = cloneForExport(el);
-            return `<div class="smartsnapshot-element-wrapper" style="left:${left}px;top:${top}px;width:${rect.width}px;height:${rect.height}px;">${clone.outerHTML}</div>`;
+            return `<div class="smartsnapshot-element-wrapper" style="left:${left}px;top:${top}px;width:${rect.width}px;height:${rect.height}px;overflow:visible;">${clone.outerHTML}</div>`;
           }).join('')}
         </div>
       </body>
@@ -473,9 +491,11 @@
     // 使用 srcdoc 确保内容正确加载
     iframe.srcdoc = htmlContent;
     
-    // 设置 iframe 尺寸为缩放后的尺寸
-    iframe.style.width = Math.ceil(totalW * scale) + 'px';
-    iframe.style.height = Math.ceil(totalH * scale) + 'px';
+    // iframe 尺寸设置为缩放后的完整尺寸，让预览区域通过滚动条查看
+    const scaledWidth = Math.ceil(totalW * scale);
+    const scaledHeight = Math.ceil(totalH * scale);
+    iframe.style.width = scaledWidth + 'px';
+    iframe.style.height = scaledHeight + 'px';
 
     // 绑定移除事件
     wrapper.querySelectorAll('.smartsnapshot-remove-item').forEach((btn, i) => {
@@ -551,6 +571,12 @@
       const css = extractStyles();
       const doc = iframe.contentDocument;
       
+      // 获取页面根元素的计算样式用于字体继承
+      const rootStyle = window.getComputedStyle(document.body);
+      const baseFontFamily = rootStyle.fontFamily || '-apple-system, BlinkMacSystemFont, sans-serif';
+      const baseFontSize = rootStyle.fontSize || '16px';
+      const baseLineHeight = rootStyle.lineHeight || 'normal';
+      
       doc.open();
       doc.write(`
         <!DOCTYPE html>
@@ -559,11 +585,21 @@
           <meta charset="UTF-8">
           <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
+            html {
+              font-family: ${escapeHtml(baseFontFamily)};
+              font-size: ${escapeHtml(baseFontSize)};
+              line-height: ${escapeHtml(baseLineHeight)};
+              -webkit-font-smoothing: antialiased;
+              -moz-osx-font-smoothing: grayscale;
+            }
             body { 
               background: white; 
               width: ${totalW}px;
               height: ${totalH}px;
               overflow: hidden;
+              font-family: inherit;
+              font-size: inherit;
+              line-height: inherit;
             }
             .smartsnapshot-container {
               position: relative;
@@ -572,6 +608,7 @@
             }
             .smartsnapshot-element-wrapper {
               position: absolute;
+              overflow: visible;
             }
             ${css}
           </style>
@@ -584,7 +621,7 @@
               const left = rect.left + sx - minX;
               const top = rect.top + sy - minY;
               const clone = cloneForExport(el);
-              return `<div class="smartsnapshot-element-wrapper" style="left:${left}px;top:${top}px;width:${rect.width}px;height:${rect.height}px;overflow:hidden;">${clone.outerHTML}</div>`;
+              return `<div class="smartsnapshot-element-wrapper" style="left:${left}px;top:${top}px;width:${rect.width}px;height:${rect.height}px;overflow:visible;">${clone.outerHTML}</div>`;
             }).join('')}
           </div>
         </body>
