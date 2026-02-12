@@ -411,59 +411,57 @@
     `;
 
     const iframe = wrapper.querySelector('iframe');
+    const css = extractStyles();
     
-    // 等 iframe 加载后填充内容
-    iframe.onload = () => {
-      const doc = iframe.contentDocument;
-      const css = extractStyles();
-      
-      doc.open();
-      doc.write(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="UTF-8">
-          <style>
-            * { margin: 0; padding: 0; box-sizing: border-box; }
-            body { 
-              background: white; 
-              overflow: hidden;
-              width: ${totalW}px;
-              height: ${totalH}px;
-            }
-            .smartsnapshot-container {
-              position: relative;
-              width: ${totalW}px;
-              height: ${totalH}px;
-              transform-origin: top left;
-            }
-            .smartsnapshot-element-wrapper {
-              position: absolute;
-              outline: 1px solid rgba(26, 115, 232, 0.5);
-            }
-            ${css}
-          </style>
-        </head>
-        <body>
-          <div class="smartsnapshot-container">
-            ${selectedArray.map(el => {
-              const rect = el.getBoundingClientRect();
-              const sx = window.scrollX, sy = window.scrollY;
-              const left = rect.left + sx - minX;
-              const top = rect.top + sy - minY;
-              const clone = cloneForExport(el);
-              return `<div class="smartsnapshot-element-wrapper" style="left:${left}px;top:${top}px;width:${rect.width}px;height:${rect.height}px;">${clone.outerHTML}</div>`;
-            }).join('')}
-          </div>
-        </body>
-        </html>
-      `);
-      doc.close();
-      
-      // 设置 iframe 尺寸
-      iframe.style.width = (totalW * scale) + 'px';
-      iframe.style.height = (totalH * scale) + 'px';
-    };
+    // 构建 HTML 内容
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <style>
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body { 
+            background: white; 
+            overflow: hidden;
+            width: ${totalW}px;
+            height: ${totalH}px;
+          }
+          .smartsnapshot-container {
+            position: relative;
+            width: ${totalW}px;
+            height: ${totalH}px;
+            transform: scale(${scale});
+            transform-origin: top left;
+          }
+          .smartsnapshot-element-wrapper {
+            position: absolute;
+            outline: 1px solid rgba(26, 115, 232, 0.5);
+          }
+          ${css}
+        </style>
+      </head>
+      <body>
+        <div class="smartsnapshot-container">
+          ${selectedArray.map(el => {
+            const rect = el.getBoundingClientRect();
+            const sx = window.scrollX, sy = window.scrollY;
+            const left = rect.left + sx - minX;
+            const top = rect.top + sy - minY;
+            const clone = cloneForExport(el);
+            return `<div class="smartsnapshot-element-wrapper" style="left:${left}px;top:${top}px;width:${rect.width}px;height:${rect.height}px;">${clone.outerHTML}</div>`;
+          }).join('')}
+        </div>
+      </body>
+      </html>
+    `;
+    
+    // 使用 srcdoc 确保内容正确加载
+    iframe.srcdoc = htmlContent;
+    
+    // 设置 iframe 尺寸为缩放后的尺寸
+    iframe.style.width = Math.ceil(totalW * scale) + 'px';
+    iframe.style.height = Math.ceil(totalH * scale) + 'px';
 
     // 绑定移除事件
     wrapper.querySelectorAll('.smartsnapshot-remove-item').forEach((btn, i) => {
