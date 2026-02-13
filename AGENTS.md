@@ -30,8 +30,16 @@ SmartSnapshot/
 ├── content-script.js      # 内容脚本 - 页面交互核心逻辑
 ├── styles.css             # 样式文件 - 侧边栏和元素高亮样式
 ├── html2canvas.min.js     # 第三方截图库（压缩版）
-├── README.md              # 用户说明文档
+├── preview.html           # 预览页面 HTML
+├── preview.js             # 预览页面脚本
+├── README.md              # 用户说明文档（英文）
+├── README.zh-CN.md        # 用户说明文档（中文）
 ├── AGENTS.md              # 本文件 - AI Agent 开发指南
+├── _locales/              # 国际化资源文件
+│   ├── en/                # 英文
+│   │   └── messages.json
+│   └── zh_CN/             # 简体中文
+│       └── messages.json
 └── icons/                 # 扩展图标
     ├── icon16.png         # 工具栏图标 (16x16)
     ├── icon48.png         # 扩展管理页图标 (48x48)
@@ -146,6 +154,69 @@ Background 与 Content Script 间的消息格式:
 { action: 'downloadScreenshot', dataUrl: 'blob:...', filename: '...png' }
 ```
 
+## 国际化 (i18n)
+
+### 架构
+
+扩展使用 Chrome Extension i18n API 实现多语言支持：
+
+- **默认语言**: 简体中文 (zh_CN)
+- **支持语言**: 英文 (en)、简体中文 (zh_CN)
+- **资源位置**: `_locales/<lang>/messages.json`
+
+### 添加新文本的步骤
+
+1. **在 `manifest.json` 中使用**:
+   ```json
+   "name": "__MSG_extensionName__",
+   "description": "__MSG_extensionDescription__",
+   "default_title": "__MSG_actionTitle__"
+   ```
+
+2. **在 JavaScript 中使用**:
+   ```javascript
+   // 使用辅助函数（推荐）
+   function getMessage(key, args) {
+     if (typeof chrome !== 'undefined' && chrome.i18n) {
+       return chrome.i18n.getMessage(key, args);
+     }
+     // Fallback...
+   }
+   
+   showNotification(getMessage('notificationSaved'));
+   ```
+
+3. **在 HTML 中使用**:
+   ```html
+   <span data-i18n="emptyHint">点击页面元素开始选择</span>
+   ```
+   然后在 JavaScript 中调用 `applyI18n()` 应用翻译。
+
+4. **更新所有 `messages.json` 文件**:
+   - `_locales/en/messages.json`
+   - `_locales/zh_CN/messages.json`
+
+### 占位符使用
+
+```json
+{
+  "elementCount": {
+    "message": "$COUNT$ elements",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "3"
+      }
+    }
+  }
+}
+```
+
+调用方式:
+```javascript
+getMessage('elementCount', [3])  // "3 elements"
+```
+
 ## 安全注意事项
 
 1. **CSP 限制**: Manifest V3 的 CSP 较严格，内联脚本会被阻止。所有 JavaScript 必须放在外部文件中。
@@ -159,6 +230,11 @@ Background 与 Content Script 间的消息格式:
 4. **样式隔离**: 侧边栏使用极高的 `z-index: 2147483647` 确保不被页面覆盖
 
 5. **权限最小化**: 仅请求必要的权限（storage, activeTab, scripting, downloads）
+
+6. **国际化安全**:
+   - 所有翻译文本必须通过 `chrome.i18n.getMessage()` 获取，避免硬编码
+   - Fallback 文本必须与默认语言（zh_CN）保持一致
+   - 占位符参数在使用前必须验证类型
 
 ## 调试指南
 

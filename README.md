@@ -1,49 +1,57 @@
 # SmartSnapshot
 
-智能网页元素选择器，支持多选、预览和截图。
+A smart web element selector with multi-select, preview and screenshot capabilities.
 
-## 功能特点
+[中文文档](README.zh-CN.md)
 
-- 🔍 **元素选择**：模仿 Chrome DevTools 的鼠标选择功能
-- ✨ **多选支持**：点击即选，再次点击取消
-- 👁️ **实时预览**：右侧 sidebar 显示选中元素的合并预览
-- 📸 **一键截图**：将选中的元素合并保存为图片
-- 💾 **智能记忆**：按域名自动保存和恢复选择
-- ⌨️ **快捷键支持**：ESC 退出选择模式
+## Features
 
-## 安装方法
+- 🔍 **Element Selection**: Mouse selection similar to Chrome DevTools
+- ✨ **Multi-Select**: Click to select, click again to deselect
+- 👁️ **Live Preview**: Sidebar shows merged preview of selected elements
+- 📸 **One-Click Screenshot**: Save selected elements as an image
+- 💾 **Smart Memory**: Auto-save and restore selections per domain
+- ⌨️ **Keyboard Shortcuts**: ESC to exit selection mode
+- 🌍 **Internationalization**: Supports English and Chinese
 
-1. 打开 Chrome 浏览器，进入 `chrome://extensions/`
-2. 开启右上角的「开发者模式」
-3. 点击「加载已解压的扩展程序」
-4. 选择本项目文件夹
+## Installation
 
-## 使用方法
+1. Open Chrome browser and navigate to `chrome://extensions/`
+2. Enable "Developer mode" in the top right corner
+3. Click "Load unpacked"
+4. Select this project folder
 
-1. **开始选择**：点击扩展图标，进入选择模式
-2. **选择元素**：
-   - 鼠标移动查看元素高亮
-   - 点击选中元素（绿色边框）
-   - 再次点击取消选择
-   - 选中父元素后无法选择其子元素
-3. **查看预览**：右侧 sidebar 实时显示选中内容的预览
-4. **截图保存**：点击 sidebar 底部的「截图」按钮
-5. **保存选择**：点击「保存选择」按钮记录当前选择（按域名存储）
-6. **忘记选择**：点击「忘记」按钮清除当前域名的记录
-7. **退出模式**：按 ESC 键或再次点击扩展图标
+## Usage
 
-## 存储说明
+1. **Start Selection**: Click the extension icon to enter selection mode
+2. **Select Elements**:
+   - Move mouse to see element highlighting
+   - Click to select an element (green border)
+   - Click again to deselect
+   - Cannot select child elements after parent is selected
+3. **View Preview**: Sidebar on the right shows real-time preview
+4. **Take Screenshot**: Click the "Screenshot" button at the bottom of sidebar
+5. **Save Selection**: Click "Save Selection" to record current selection (stored per domain)
+6. **Forget Selection**: Click "Forget" to clear current domain's records
+7. **Exit Mode**: Press ESC or click the extension icon again
 
-- 每个域名最多保存 1 条记录
-- 使用 CSS 选择器记录元素位置
-- 页面结构变化后可能无法恢复之前的选择
+## Storage Notes
 
-## 快捷键
+- Maximum 1 record per domain
+- Uses CSS selectors to record element positions
+- Previous selections may not restore if page structure changes
 
-- `ESC` - 退出选择模式
+## Keyboard Shortcuts
 
-## 技术说明
+- `ESC` - Exit selection mode
 
-- 基于 Chrome Extension Manifest V3
-- 使用原生 Canvas API 实现截图功能
-- 数据存储使用 Chrome Storage API
+## Technical Details
+
+- Built on Chrome Extension Manifest V3
+- Uses native Canvas API for screenshot functionality
+- Data storage via Chrome Storage API
+- i18n support via Chrome i18n API
+
+## License
+
+MIT
