@@ -1,51 +1,122 @@
 let previewData = null;
+let lastCapturedImageDataUrl = "";
 
-// 加载预览数据
-async function loadPreviewData() {
-  try {
-    const result = await chrome.storage.local.get("previewData");
-    previewData = result.previewData;
-
-    if (!previewData) {
-      document.getElementById("previewContainer").innerHTML =
-        '<div class="empty">未找到预览数据，请重新生成截图</div>';
-      document.getElementById("saveBtn").disabled = true;
-      return;
-    }
-
-    // 更新信息
-    document.getElementById("infoText").textContent =
-      `尺寸: ${previewData.width}px × ${previewData.height}px | 文件名: ${previewData.filename}`;
-
-    // 创建预览
-    const container = document.getElementById("previewContainer");
-    container.innerHTML = `
-      <div class="preview-wrapper">
-        <iframe id="previewFrame" width="${previewData.width}" height="${previewData.height}"></iframe>
-      </div>
-    `;
-
-    // 写入 HTML 内容
-    const iframe = document.getElementById("previewFrame");
-    const doc = iframe.contentDocument || iframe.contentWindow.document;
-    doc.open();
-    doc.write(previewData.htmlContent);
-    doc.close();
-  } catch (error) {
-    console.error("加载预览数据失败:", error);
-    document.getElementById("previewContainer").innerHTML =
-      '<div class="empty">加载失败: ' + error.message + "</div>";
-  }
-}
-
-// 显示状态消息
 function showStatus(message, type = "success") {
   const status = document.getElementById("status");
   status.textContent = message;
   status.className = "status show " + type;
-  setTimeout(() => {
-    status.classList.remove("show");
-  }, 3000);
+  setTimeout(() => status.classList.remove("show"), 3000);
+}
+
+function setActionButtonsBusy(isBusy, label = "生成中...") {
+  const saveBtn = document.getElementById("saveBtn");
+  const previewBtn = document.getElementById("previewShotBtn");
+
+  if (saveBtn) {
+    saveBtn.textContent = isBusy ? label : "💾 保存截图";
+    saveBtn.disabled = isBusy || !lastCapturedImageDataUrl;
+  }
+
+  if (previewBtn) {
+    previewBtn.textContent = isBusy ? label : "🔄 重新生成";
+    previewBtn.disabled = isBusy;
+  }
+}
+
+function openResultModal(imageDataUrl) {
+  const modal = document.getElementById("resultModal");
+  const image = document.getElementById("resultImage");
+  if (!modal || !image) return;
+  image.src = imageDataUrl;
+  modal.classList.add("show");
+}
+
+function closeResultModal() {
+  document.getElementById("resultModal")?.classList.remove("show");
+}
+
+function downloadDataUrl(dataUrl, filename) {
+  const a = document.createElement("a");
+  a.href = dataUrl;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+function captureTabDataUrl() {
+  return new Promise((resolve, reject) => {
+    chrome.runtime.sendMessage({ action: "captureTab" }, (response) => {
+      if (chrome.runtime.lastError) {
+        reject(new Error(chrome.runtime.lastError.message));
+        return;
+      }
+      const dataUrl =
+        typeof response === "string" ? response : response?.dataUrl;
+      if (!dataUrl) {
+        reject(new Error("截图失败：未获取到图像数据"));
+        return;
+      }
+      resolve(dataUrl);
+    });
+  });
+}
+
+function captureTabCroppedDataUrl(width, height) {
+  return new Promise((resolve, reject) => {
+    chrome.runtime.sendMessage(
+      { action: "captureTabCropped", width, height },
+      (response) => {
+        if (chrome.runtime.lastError) {
+          reject(new Error(chrome.runtime.lastError.message));
+          return;
+        }
+        const dataUrl = response?.dataUrl;
+        if (!dataUrl) {
+          reject(
+            new Error(response?.error || "裁剪截图失败：未获取到图像数据"),
+          );
+          return;
+        }
+        resolve(dataUrl);
+      },
+    );
+  });
+}
+
+async function waitForCaptureStable() {
+  await new Promise((resolve) => requestAnimationFrame(resolve));
+  await new Promise((resolve) => requestAnimationFrame(resolve));
+  await new Promise((resolve) => setTimeout(resolve, 120));
+}
+
+async function waitForPreviewFrameReady() {
+  const iframe = document.getElementById("previewFrame");
+  if (!iframe) return;
+
+  const doc = iframe.contentDocument || iframe.contentWindow?.document;
+  if (!doc) return;
+
+  if (doc.readyState !== "complete") {
+    await new Promise((resolve) => {
+      iframe.addEventListener("load", resolve, { once: true });
+    });
+  }
+
+  const images = Array.from(doc.querySelectorAll("img"));
+  await Promise.all(
+    images.map((img) => {
+      return new Promise((resolve) => {
+        if (img.complete) {
+          resolve();
+          return;
+        }
+        img.addEventListener("load", resolve, { once: true });
+        img.addEventListener("error", resolve, { once: true });
+        setTimeout(resolve, 1200);
+      });
+    }),
+  );
 }
 
 function enterCaptureOnlyLayout() {
@@ -53,6 +124,7 @@ function enterCaptureOnlyLayout() {
   const html = document.documentElement;
   const header = document.querySelector(".header");
   const status = document.getElementById("status");
+  const modal = document.getElementById("resultModal");
   const container = document.getElementById("previewContainer");
   const wrapper = container?.querySelector(".preview-wrapper");
 
@@ -63,12 +135,14 @@ function enterCaptureOnlyLayout() {
     scrollY: window.scrollY,
     headerDisplay: header?.style.display || "",
     statusDisplay: status?.style.display || "",
+    modalDisplay: modal?.style.display || "",
     containerStyle: container?.getAttribute("style") || "",
     wrapperStyle: wrapper?.getAttribute("style") || "",
   };
 
   if (header) header.style.display = "none";
   if (status) status.style.display = "none";
+  if (modal) modal.style.display = "none";
 
   html.style.margin = "0";
   html.style.padding = "0";
@@ -120,6 +194,7 @@ function exitCaptureOnlyLayout(snapshot) {
   const html = document.documentElement;
   const header = document.querySelector(".header");
   const status = document.getElementById("status");
+  const modal = document.getElementById("resultModal");
   const container = document.getElementById("previewContainer");
   const wrapper = container?.querySelector(".preview-wrapper");
 
@@ -137,6 +212,7 @@ function exitCaptureOnlyLayout(snapshot) {
 
   if (header) header.style.display = snapshot.headerDisplay;
   if (status) status.style.display = snapshot.statusDisplay;
+  if (modal) modal.style.display = snapshot.modalDisplay;
 
   if (container) {
     if (snapshot.containerStyle) {
@@ -155,52 +231,6 @@ function exitCaptureOnlyLayout(snapshot) {
   }
 
   window.scrollTo(snapshot.scrollX, snapshot.scrollY);
-}
-
-async function waitForCaptureStable() {
-  await new Promise((resolve) => requestAnimationFrame(resolve));
-  await new Promise((resolve) => requestAnimationFrame(resolve));
-  await new Promise((resolve) => setTimeout(resolve, 120));
-}
-
-function captureTabDataUrl() {
-  return new Promise((resolve, reject) => {
-    chrome.runtime.sendMessage({ action: "captureTab" }, (response) => {
-      if (chrome.runtime.lastError) {
-        reject(new Error(chrome.runtime.lastError.message));
-        return;
-      }
-      const dataUrl =
-        typeof response === "string" ? response : response?.dataUrl;
-      if (!dataUrl) {
-        reject(new Error("截图失败：未获取到图像数据"));
-        return;
-      }
-      resolve(dataUrl);
-    });
-  });
-}
-
-function captureTabCroppedDataUrl(width, height) {
-  return new Promise((resolve, reject) => {
-    chrome.runtime.sendMessage(
-      { action: "captureTabCropped", width, height },
-      (response) => {
-        if (chrome.runtime.lastError) {
-          reject(new Error(chrome.runtime.lastError.message));
-          return;
-        }
-        const dataUrl = response?.dataUrl;
-        if (!dataUrl) {
-          reject(
-            new Error(response?.error || "裁剪截图失败：未获取到图像数据"),
-          );
-          return;
-        }
-        resolve(dataUrl);
-      },
-    );
-  });
 }
 
 async function captureVisibleScreenshot() {
@@ -222,105 +252,102 @@ async function captureVisibleScreenshot() {
   }
 }
 
-function setActionButtonsBusy(isBusy, label = "生成中...") {
-  const saveBtn = document.getElementById("saveBtn");
-  const previewBtn = document.getElementById("previewShotBtn");
-
-  if (saveBtn) {
-    saveBtn.textContent = isBusy ? label : "💾 保存截图";
-    saveBtn.disabled = isBusy;
-  }
-  if (previewBtn) {
-    previewBtn.textContent = isBusy ? label : "👁️ 预览截图";
-    previewBtn.disabled = isBusy;
-  }
-}
-
-// 在新页面中预览最终截图
-async function previewScreenshot() {
+async function buildScreenshotAndShowModal() {
   if (!previewData) {
-    showStatus("没有可预览的内容", "error");
-    return;
-  }
-
-  setActionButtonsBusy(true, "生成预览中...");
-
-  try {
-    const imageDataUrl = await captureVisibleScreenshot();
-    const win = window.open("", "_blank");
-
-    if (!win) {
-      throw new Error("浏览器阻止了新窗口，请允许弹窗后重试");
-    }
-
-    win.document.open();
-    win.document.write(`
-      <!doctype html>
-      <html>
-      <head>
-        <meta charset="utf-8">
-        <title>SmartSnapshot 截图预览</title>
-        <style>
-          body { margin: 0; padding: 20px; background: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
-          .wrap { max-width: 1200px; margin: 0 auto; }
-          .title { margin: 0 0 12px; color: #333; font-size: 18px; }
-          .meta { margin: 0 0 16px; color: #666; font-size: 13px; }
-          img { display: block; max-width: 100%; height: auto; background: #fff; box-shadow: 0 4px 20px rgba(0,0,0,0.15); }
-        </style>
-      </head>
-      <body>
-        <div class="wrap">
-          <h1 class="title">SmartSnapshot 截图预览</h1>
-          <p class="meta">${previewData.filename} · ${previewData.width} × ${previewData.height}</p>
-          <img src="${imageDataUrl}" alt="SmartSnapshot Preview" />
-        </div>
-      </body>
-      </html>
-    `);
-    win.document.close();
-
-    showStatus("已在新页面打开截图预览");
-  } catch (error) {
-    console.error("预览失败:", error);
-    showStatus("预览失败: " + error.message, "error");
-  } finally {
-    setActionButtonsBusy(false);
-  }
-}
-
-// 保存截图
-async function saveScreenshot() {
-  if (!previewData) {
-    showStatus("没有可保存的内容", "error");
+    showStatus("没有可截图的内容", "error");
     return;
   }
 
   setActionButtonsBusy(true, "生成中...");
+  document.getElementById("infoText").textContent =
+    "预览已渲染，正在自动截图...";
 
   try {
+    await waitForPreviewFrameReady();
     const imageDataUrl = await captureVisibleScreenshot();
+    lastCapturedImageDataUrl = imageDataUrl;
 
-    const a = document.createElement("a");
-    a.href = imageDataUrl;
-    a.download = previewData.filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    document.getElementById("infoText").textContent =
+      `尺寸: ${previewData.width}px × ${previewData.height}px | 文件名: ${previewData.filename}`;
 
-    showStatus("截图已保存");
+    openResultModal(imageDataUrl);
+    showStatus("截图已自动生成");
   } catch (error) {
-    console.error("保存失败:", error);
-    showStatus("保存失败: " + error.message, "error");
+    console.error("自动截图失败:", error);
+    showStatus("截图失败: " + error.message, "error");
+    document.getElementById("infoText").textContent =
+      "截图失败，请点击“重新生成”重试";
   } finally {
     setActionButtonsBusy(false);
   }
 }
 
-// 绑定事件
+async function loadPreviewData() {
+  try {
+    const result = await chrome.storage.local.get("previewData");
+    previewData = result.previewData;
+
+    if (!previewData) {
+      document.getElementById("previewContainer").innerHTML =
+        '<div class="empty">未找到预览数据，请重新生成截图</div>';
+      setActionButtonsBusy(false);
+      return;
+    }
+
+    document.getElementById("infoText").textContent =
+      `正在渲染：${previewData.width}px × ${previewData.height}px`;
+
+    const container = document.getElementById("previewContainer");
+    container.innerHTML = `
+      <div class="preview-wrapper">
+        <iframe id="previewFrame" width="${previewData.width}" height="${previewData.height}"></iframe>
+      </div>
+    `;
+
+    const iframe = document.getElementById("previewFrame");
+    const doc = iframe.contentDocument || iframe.contentWindow.document;
+    doc.open();
+    doc.write(previewData.htmlContent);
+    doc.close();
+
+    await buildScreenshotAndShowModal();
+  } catch (error) {
+    console.error("加载预览数据失败:", error);
+    document.getElementById("previewContainer").innerHTML =
+      '<div class="empty">加载失败: ' + error.message + "</div>";
+    showStatus("加载失败: " + error.message, "error");
+  }
+}
+
+function saveScreenshot() {
+  if (!previewData || !lastCapturedImageDataUrl) {
+    showStatus("尚未生成截图，请先重新生成", "error");
+    return;
+  }
+  downloadDataUrl(lastCapturedImageDataUrl, previewData.filename);
+  showStatus("截图已保存");
+}
+
 document.getElementById("saveBtn").addEventListener("click", saveScreenshot);
 document
   .getElementById("previewShotBtn")
-  .addEventListener("click", previewScreenshot);
+  .addEventListener("click", buildScreenshotAndShowModal);
+document
+  .getElementById("closeModalBtn")
+  .addEventListener("click", closeResultModal);
+document
+  .getElementById("regenerateBtn")
+  .addEventListener("click", buildScreenshotAndShowModal);
+document
+  .getElementById("modalSaveBtn")
+  .addEventListener("click", saveScreenshot);
+document.getElementById("resultModal").addEventListener("click", (event) => {
+  if (event.target.id === "resultModal") {
+    closeResultModal();
+  }
+});
 
-// 页面加载完成后加载数据
-document.addEventListener("DOMContentLoaded", loadPreviewData);
+document.addEventListener("DOMContentLoaded", () => {
+  setActionButtonsBusy(false);
+  loadPreviewData();
+});
