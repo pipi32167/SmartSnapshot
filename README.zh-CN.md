@@ -14,6 +14,16 @@
 - ⌨️ **快捷键支持**：ESC 退出选择模式
 - 🌍 **国际化**：支持中文和英文
 
+## 使用示例
+
+### 使用界面
+
+![使用界面](snapshots/usage.png)
+
+### 截图效果
+
+![截图效果](snapshots/effect.png)
+
 ## 安装方法
 
 1. 打开 Chrome 浏览器，进入 `chrome://extensions/`

@@ -14,6 +14,16 @@ A smart web element selector with multi-select, preview and screenshot capabilit
 - ⌨️ **Keyboard Shortcuts**: ESC to exit selection mode
 - 🌍 **Internationalization**: Supports English and Chinese
 
+## Screenshots
+
+### Usage
+
+![Usage](snapshots/usage.png)
+
+### Screenshot Effect
+
+![Effect](snapshots/effect.png)
+
 ## Installation
 
 1. Open Chrome browser and navigate to `chrome://extensions/`
