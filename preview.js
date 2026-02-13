@@ -170,7 +170,8 @@ function captureTabDataUrl() {
         reject(new Error(chrome.runtime.lastError.message));
         return;
       }
-      const dataUrl = typeof response === "string" ? response : response?.dataUrl;
+      const dataUrl =
+        typeof response === "string" ? response : response?.dataUrl;
       if (!dataUrl) {
         reject(new Error("截图失败：未获取到图像数据"));
         return;
@@ -191,11 +192,13 @@ function captureTabCroppedDataUrl(width, height) {
         }
         const dataUrl = response?.dataUrl;
         if (!dataUrl) {
-          reject(new Error(response?.error || "裁剪截图失败：未获取到图像数据"));
+          reject(
+            new Error(response?.error || "裁剪截图失败：未获取到图像数据"),
+          );
           return;
         }
         resolve(dataUrl);
-      }
+      },
     );
   });
 }

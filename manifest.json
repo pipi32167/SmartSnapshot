@@ -3,16 +3,8 @@
   "name": "SmartSnapshot",
   "version": "1.0.0",
   "description": "智能网页元素选择器，支持多选、预览和截图",
-  "permissions": [
-    "storage",
-    "activeTab",
-    "scripting",
-    "downloads",
-    "debugger"
-  ],
-  "host_permissions": [
-    "<all_urls>"
-  ],
+  "permissions": ["storage", "activeTab", "scripting", "downloads", "debugger"],
+  "host_permissions": ["<all_urls>"],
   "background": {
     "service_worker": "background.js"
   },
@@ -39,7 +31,12 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["styles.css", "html2canvas.min.js", "preview.html", "preview.js"],
+      "resources": [
+        "styles.css",
+        "html2canvas.min.js",
+        "preview.html",
+        "preview.js"
+      ],
       "matches": ["<all_urls>"]
     }
   ]

@@ -450,7 +450,12 @@
       });
     }
 
-    function copyAvatarContainerStyles(sourceImg, targetImg, sourceRoot, targetRoot) {
+    function copyAvatarContainerStyles(
+      sourceImg,
+      targetImg,
+      sourceRoot,
+      targetRoot,
+    ) {
       const props = [
         "position",
         "top",
