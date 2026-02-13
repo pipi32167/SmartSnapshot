@@ -1,0 +1,124 @@
+{
+  "extensionName": {
+    "message": "SmartSnapshot",
+    "description": "扩展名称"
+  },
+  "extensionDescription": {
+    "message": "智能网页元素选择器，支持多选、预览和截图",
+    "description": "扩展描述"
+  },
+  "actionTitle": {
+    "message": "SmartSnapshot - 点击开始选择元素",
+    "description": "操作按钮悬停标题"
+  },
+  "sidebarTitle": {
+    "message": "SmartSnapshot",
+    "description": "侧边栏标题"
+  },
+  "emptyHint": {
+    "message": "点击页面元素开始选择",
+    "description": "侧边栏空状态提示"
+  },
+  "btnSave": {
+    "message": "保存选择",
+    "description": "保存选择按钮"
+  },
+  "btnForget": {
+    "message": "忘记",
+    "description": "忘记选择按钮"
+  },
+  "btnScreenshot": {
+    "message": "📷 截图",
+    "description": "截图按钮"
+  },
+  "btnScreenshotProcessing": {
+    "message": "处理中...",
+    "description": "截图按钮处理中状态"
+  },
+  "notificationSaved": {
+    "message": "选择已保存",
+    "description": "保存成功通知"
+  },
+  "notificationSaveFailed": {
+    "message": "保存失败",
+    "description": "保存失败通知"
+  },
+  "notificationForgotten": {
+    "message": "已忘记此域名的选择",
+    "description": "忘记成功通知"
+  },
+  "notificationPreviewOpened": {
+    "message": "预览页面已打开",
+    "description": "预览已打开通知"
+  },
+  "notificationPreviewFailed": {
+    "message": "预览打开失败",
+    "description": "预览失败通知"
+  },
+  "notificationScreenshotFailed": {
+    "message": "截图失败",
+    "description": "截图失败通知"
+  },
+  "previewTitle": {
+    "message": "SmartSnapshot 预览",
+    "description": "预览页面标题"
+  },
+  "previewLoading": {
+    "message": "加载中，稍后将自动完成截图...",
+    "description": "预览加载文本"
+  },
+  "previewEmpty": {
+    "message": "正在加载预览内容...",
+    "description": "预览空状态"
+  },
+  "btnClose": {
+    "message": "关闭",
+    "description": "关闭按钮"
+  },
+  "btnRegenerate": {
+    "message": "🔄 重新生成",
+    "description": "重新生成按钮"
+  },
+  "btnSaveScreenshot": {
+    "message": "💾 保存截图",
+    "description": "保存截图按钮"
+  },
+  "modalTitle": {
+    "message": "截图结果预览",
+    "description": "模态框标题"
+  },
+  "modalBtnClose": {
+    "message": "关闭",
+    "description": "模态框关闭按钮"
+  },
+  "modalBtnRegenerate": {
+    "message": "重新生成",
+    "description": "模态框重新生成按钮"
+  },
+  "modalBtnSave": {
+    "message": "保存截图",
+    "description": "模态框保存按钮"
+  },
+  "statusGenerating": {
+    "message": "正在生成截图...",
+    "description": "生成中状态"
+  },
+  "statusSuccess": {
+    "message": "截图保存成功",
+    "description": "成功状态"
+  },
+  "statusError": {
+    "message": "生成失败，请重试",
+    "description": "错误状态"
+  },
+  "elementCount": {
+    "message": "$COUNT$ 个元素",
+    "description": "元素计数文本",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "3"
+      }
+    }
+  }
+}

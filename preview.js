@@ -1,6 +1,53 @@
 let previewData = null;
 let lastCapturedImageDataUrl = "";
 
+/**
+ * Get localized message
+ * @param {string} key - Message key
+ * @param {string[]} [args] - Substitution arguments
+ * @returns {string} Localized message
+ */
+function getMessage(key, args) {
+  if (typeof chrome !== 'undefined' && chrome.i18n && chrome.i18n.getMessage) {
+    return chrome.i18n.getMessage(key, args);
+  }
+  // Fallback messages (Chinese)
+  const fallbacks = {
+    'previewTitle': 'SmartSnapshot 预览',
+    'previewLoading': '加载中，稍后将自动完成截图...',
+    'previewEmpty': '正在加载预览内容...',
+    'btnClose': '关闭',
+    'btnRegenerate': '🔄 重新生成',
+    'btnSaveScreenshot': '💾 保存截图',
+    'modalTitle': '截图结果预览',
+    'modalBtnClose': '关闭',
+    'modalBtnRegenerate': '重新生成',
+    'modalBtnSave': '保存截图',
+    'statusGenerating': '正在生成截图...',
+    'statusSuccess': '截图保存成功',
+    'statusError': '生成失败，请重试'
+  };
+  return fallbacks[key] || key;
+}
+
+/**
+ * Apply i18n to elements with data-i18n attribute
+ */
+function applyI18n() {
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    const message = getMessage(key);
+    if (message) {
+      // For input elements, update value; for others, update textContent
+      if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+        el.value = message;
+      } else {
+        el.textContent = message;
+      }
+    }
+  });
+}
+
 function showStatus(message, type = "success") {
   const status = document.getElementById("status");
   status.textContent = message;
@@ -8,17 +55,17 @@ function showStatus(message, type = "success") {
   setTimeout(() => status.classList.remove("show"), 3000);
 }
 
-function setActionButtonsBusy(isBusy, label = "生成中...") {
+function setActionButtonsBusy(isBusy, label) {
   const saveBtn = document.getElementById("saveBtn");
   const previewBtn = document.getElementById("previewShotBtn");
 
   if (saveBtn) {
-    saveBtn.textContent = isBusy ? label : "💾 保存截图";
+    saveBtn.textContent = isBusy ? (label || getMessage('statusGenerating')) : getMessage('btnSaveScreenshot');
     saveBtn.disabled = isBusy || !lastCapturedImageDataUrl;
   }
 
   if (previewBtn) {
-    previewBtn.textContent = isBusy ? label : "🔄 重新生成";
+    previewBtn.textContent = isBusy ? (label || getMessage('statusGenerating')) : getMessage('btnRegenerate');
     previewBtn.disabled = isBusy;
   }
 }
@@ -258,9 +305,8 @@ async function buildScreenshotAndShowModal() {
     return;
   }
 
-  setActionButtonsBusy(true, "生成中...");
-  document.getElementById("infoText").textContent =
-    "预览已渲染，正在自动截图...";
+  setActionButtonsBusy(true, getMessage('statusGenerating'));
+  document.getElementById("infoText").textContent = getMessage('statusGenerating');
 
   try {
     await waitForPreviewFrameReady();
@@ -271,10 +317,10 @@ async function buildScreenshotAndShowModal() {
       `尺寸: ${previewData.width}px × ${previewData.height}px | 文件名: ${previewData.filename}`;
 
     openResultModal(imageDataUrl);
-    showStatus("截图已自动生成");
+    showStatus(getMessage('statusSuccess'));
   } catch (error) {
     console.error("自动截图失败:", error);
-    showStatus("截图失败: " + error.message, "error");
+    showStatus(getMessage('statusError') + ": " + error.message, "error");
     document.getElementById("infoText").textContent =
       "截图失败，请点击“重新生成”重试";
   } finally {
@@ -289,7 +335,7 @@ async function loadPreviewData() {
 
     if (!previewData) {
       document.getElementById("previewContainer").innerHTML =
-        '<div class="empty">未找到预览数据，请重新生成截图</div>';
+        '<div class="empty">' + getMessage('previewEmpty') + '</div>';
       setActionButtonsBusy(false);
       return;
     }
@@ -325,7 +371,7 @@ function saveScreenshot() {
     return;
   }
   downloadDataUrl(lastCapturedImageDataUrl, previewData.filename);
-  showStatus("截图已保存");
+  showStatus(getMessage('statusSuccess'));
 }
 
 document.getElementById("saveBtn").addEventListener("click", saveScreenshot);
@@ -348,6 +394,7 @@ document.getElementById("resultModal").addEventListener("click", (event) => {
 });
 
 document.addEventListener("DOMContentLoaded", () => {
+  applyI18n();
   setActionButtonsBusy(false);
   loadPreviewData();
 });

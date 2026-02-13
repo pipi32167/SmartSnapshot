@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "SmartSnapshot",
+  "name": "__MSG_extensionName__",
   "version": "1.0.0",
-  "description": "智能网页元素选择器，支持多选、预览和截图",
+  "description": "__MSG_extensionDescription__",
   "permissions": ["storage", "activeTab", "scripting", "downloads", "debugger"],
   "host_permissions": ["<all_urls>"],
   "background": {
@@ -22,13 +22,14 @@
       "48": "icons/icon48.png",
       "128": "icons/icon128.png"
     },
-    "default_title": "SmartSnapshot - 点击开始选择元素"
+    "default_title": "__MSG_actionTitle__"
   },
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
   },
+  "default_locale": "zh_CN",
   "web_accessible_resources": [
     {
       "resources": [

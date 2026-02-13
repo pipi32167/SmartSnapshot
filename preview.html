@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8">
-  <title>SmartSnapshot 预览</title>
+  <title data-i18n="previewTitle">SmartSnapshot 预览</title>
   <style>
     * {
       margin: 0;
@@ -204,18 +204,18 @@
 <body>
   <div class="header">
     <div>
-      <h1>SmartSnapshot 预览</h1>
-      <div class="info" id="infoText">加载中，稍后将自动完成截图...</div>
+      <h1 data-i18n="previewTitle">SmartSnapshot 预览</h1>
+      <div class="info" id="infoText" data-i18n="previewLoading">加载中，稍后将自动完成截图...</div>
     </div>
     <div class="actions">
-      <button class="btn btn-secondary" onclick="window.close()">关闭</button>
-      <button class="btn btn-secondary" id="previewShotBtn">🔄 重新生成</button>
-      <button class="btn btn-primary" id="saveBtn">💾 保存截图</button>
+      <button class="btn btn-secondary" onclick="window.close()" data-i18n="btnClose">关闭</button>
+      <button class="btn btn-secondary" id="previewShotBtn" data-i18n="btnRegenerate">🔄 重新生成</button>
+      <button class="btn btn-primary" id="saveBtn" data-i18n="btnSaveScreenshot">💾 保存截图</button>
     </div>
   </div>
 
   <div class="preview-container" id="previewContainer">
-    <div class="empty">正在加载预览内容...</div>
+    <div class="empty" data-i18n="previewEmpty">正在加载预览内容...</div>
   </div>
 
   <div class="status" id="status"></div>
@@ -223,15 +223,15 @@
   <div class="modal" id="resultModal">
     <div class="modal-card">
       <div class="modal-header">
-        <div class="modal-title">截图结果预览</div>
-        <button class="btn btn-secondary" id="closeModalBtn">关闭</button>
+        <div class="modal-title" data-i18n="modalTitle">截图结果预览</div>
+        <button class="btn btn-secondary" id="closeModalBtn" data-i18n="modalBtnClose">关闭</button>
       </div>
       <div class="modal-body">
         <img id="resultImage" alt="SmartSnapshot Result" />
       </div>
       <div class="modal-footer">
-        <button class="btn btn-secondary" id="regenerateBtn">重新生成</button>
-        <button class="btn btn-primary" id="modalSaveBtn">保存截图</button>
+        <button class="btn btn-secondary" id="regenerateBtn" data-i18n="modalBtnRegenerate">重新生成</button>
+        <button class="btn btn-primary" id="modalSaveBtn" data-i18n="modalBtnSave">保存截图</button>
       </div>
     </div>
   </div>

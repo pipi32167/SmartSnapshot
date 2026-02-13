@@ -22,6 +22,34 @@
   const SIDEBAR_ID = "smartsnapshot-sidebar";
   const PREVIEW_CONTAINER_ID = "smartsnapshot-preview";
 
+  /**
+   * Get localized message
+   * @param {string} key - Message key
+   * @param {string[]} [args] - Substitution arguments
+   * @returns {string} Localized message
+   */
+  function getMessage(key, args) {
+    if (typeof chrome !== 'undefined' && chrome.i18n && chrome.i18n.getMessage) {
+      return chrome.i18n.getMessage(key, args);
+    }
+    // Fallback messages
+    const fallbacks = {
+      'emptyHint': '点击页面元素开始选择',
+      'btnSave': '保存选择',
+      'btnForget': '忘记',
+      'btnScreenshot': '📷 截图',
+      'btnScreenshotProcessing': '处理中...',
+      'notificationSaved': '选择已保存',
+      'notificationSaveFailed': '保存失败',
+      'notificationForgotten': '已忘记此域名的选择',
+      'notificationPreviewOpened': '预览页面已打开',
+      'notificationPreviewFailed': '预览打开失败',
+      'notificationScreenshotFailed': '截图失败',
+      'elementCount': `${args?.[0] || 0} 个元素`
+    };
+    return fallbacks[key] || key;
+  }
+
   function init() {
     chrome.runtime.onMessage.addListener(handleMessage);
     document.addEventListener("keydown", handleKeyDown);
@@ -80,15 +108,15 @@
       </div>
       <div class="smartsnapshot-preview-wrapper">
         <div id="${PREVIEW_CONTAINER_ID}">
-          <div class="smartsnapshot-empty">点击页面元素开始选择</div>
+          <div class="smartsnapshot-empty">${getMessage('emptyHint')}</div>
         </div>
       </div>
       <div class="smartsnapshot-footer">
         <div class="smartsnapshot-actions">
-          <button id="smartsnapshot-save" class="smartsnapshot-btn smartsnapshot-btn-primary" disabled>保存选择</button>
-          <button id="smartsnapshot-forget" class="smartsnapshot-btn smartsnapshot-btn-secondary" disabled>忘记</button>
+          <button id="smartsnapshot-save" class="smartsnapshot-btn smartsnapshot-btn-primary" disabled>${getMessage('btnSave')}</button>
+          <button id="smartsnapshot-forget" class="smartsnapshot-btn smartsnapshot-btn-secondary" disabled>${getMessage('btnForget')}</button>
         </div>
-        <button id="smartsnapshot-screenshot" class="smartsnapshot-btn smartsnapshot-btn-screenshot" disabled>📷 截图</button>
+        <button id="smartsnapshot-screenshot" class="smartsnapshot-btn smartsnapshot-btn-screenshot" disabled>${getMessage('btnScreenshot')}</button>
       </div>
     `;
     document.body.appendChild(sidebar);
@@ -280,9 +308,9 @@
     });
     try {
       await chrome.storage.local.set({ [state.currentDomain]: selectors });
-      showNotification("选择已保存");
+      showNotification(getMessage('notificationSaved'));
     } catch (error) {
-      showNotification("保存失败", "error");
+      showNotification(getMessage('notificationSaveFailed'), "error");
     }
   }
 
@@ -292,7 +320,7 @@
       clearHighlights();
       updatePreview();
       updateButtons();
-      showNotification("已忘记此域名的选择");
+      showNotification(getMessage('notificationForgotten'));
     } catch (error) {
       console.warn("SmartSnapshot: Failed to forget selections", error);
     }
@@ -679,7 +707,7 @@
       .join(", ");
     wrapper.innerHTML = `
       <div class="smartsnapshot-preview-header">
-        <span title="${tags}">${selectedArray.length} 个元素</span>
+        <span title="${tags}">${getMessage('elementCount', [selectedArray.length])}</span>
         <div class="smartsnapshot-preview-actions">
           ${selectedArray.map((el, i) => `<button class="smartsnapshot-remove-item" data-index="${i}">${escapeHtml(el.tagName.toLowerCase())} ✕</button>`).join("")}
         </div>
@@ -911,11 +939,11 @@
               "SmartSnapshot: Runtime error",
               chrome.runtime.lastError,
             );
-            showNotification("预览打开失败", "error");
+            showNotification(getMessage('notificationPreviewFailed'), "error");
           } else if (!response?.success) {
-            showNotification("预览打开失败", "error");
+            showNotification(getMessage('notificationPreviewFailed'), "error");
           } else {
-            showNotification("预览页面已打开");
+            showNotification(getMessage('notificationPreviewOpened'));
           }
 
           state.isProcessing = false;
@@ -927,11 +955,11 @@
       );
     } catch (error) {
       console.error("Screenshot failed:", error);
-      showNotification("截图失败: " + error.message, "error");
+      showNotification(getMessage('notificationScreenshotFailed') + ": " + error.message, "error");
 
       state.isProcessing = false;
       if (screenshotBtn) {
-        screenshotBtn.textContent = "📷 截图";
+        screenshotBtn.textContent = getMessage('btnScreenshot');
         screenshotBtn.disabled = false;
       }
     }

@@ -1,0 +1,124 @@
+{
+  "extensionName": {
+    "message": "SmartSnapshot",
+    "description": "Extension name"
+  },
+  "extensionDescription": {
+    "message": "Smart web element selector with multi-select, preview and screenshot capabilities",
+    "description": "Extension description"
+  },
+  "actionTitle": {
+    "message": "SmartSnapshot - Click to start selecting elements",
+    "description": "Action button hover title"
+  },
+  "sidebarTitle": {
+    "message": "SmartSnapshot",
+    "description": "Sidebar header title"
+  },
+  "emptyHint": {
+    "message": "Click on page elements to start selecting",
+    "description": "Empty state hint in sidebar"
+  },
+  "btnSave": {
+    "message": "Save Selection",
+    "description": "Save selection button"
+  },
+  "btnForget": {
+    "message": "Forget",
+    "description": "Forget selection button"
+  },
+  "btnScreenshot": {
+    "message": "📷 Screenshot",
+    "description": "Screenshot button"
+  },
+  "btnScreenshotProcessing": {
+    "message": "Processing...",
+    "description": "Screenshot button processing state"
+  },
+  "notificationSaved": {
+    "message": "Selection saved",
+    "description": "Save success notification"
+  },
+  "notificationSaveFailed": {
+    "message": "Save failed",
+    "description": "Save failed notification"
+  },
+  "notificationForgotten": {
+    "message": "Domain selection forgotten",
+    "description": "Forget success notification"
+  },
+  "notificationPreviewOpened": {
+    "message": "Preview page opened",
+    "description": "Preview opened notification"
+  },
+  "notificationPreviewFailed": {
+    "message": "Failed to open preview",
+    "description": "Preview failed notification"
+  },
+  "notificationScreenshotFailed": {
+    "message": "Screenshot failed",
+    "description": "Screenshot failed notification"
+  },
+  "previewTitle": {
+    "message": "SmartSnapshot Preview",
+    "description": "Preview page title"
+  },
+  "previewLoading": {
+    "message": "Loading, screenshot will be generated automatically...",
+    "description": "Preview loading text"
+  },
+  "previewEmpty": {
+    "message": "Loading preview content...",
+    "description": "Preview empty state"
+  },
+  "btnClose": {
+    "message": "Close",
+    "description": "Close button"
+  },
+  "btnRegenerate": {
+    "message": "🔄 Regenerate",
+    "description": "Regenerate button"
+  },
+  "btnSaveScreenshot": {
+    "message": "💾 Save Screenshot",
+    "description": "Save screenshot button"
+  },
+  "modalTitle": {
+    "message": "Screenshot Result Preview",
+    "description": "Modal title"
+  },
+  "modalBtnClose": {
+    "message": "Close",
+    "description": "Modal close button"
+  },
+  "modalBtnRegenerate": {
+    "message": "Regenerate",
+    "description": "Modal regenerate button"
+  },
+  "modalBtnSave": {
+    "message": "Save Screenshot",
+    "description": "Modal save button"
+  },
+  "statusGenerating": {
+    "message": "Generating screenshot...",
+    "description": "Status generating"
+  },
+  "statusSuccess": {
+    "message": "Screenshot saved successfully",
+    "description": "Status success"
+  },
+  "statusError": {
+    "message": "Generation failed, please try again",
+    "description": "Status error"
+  },
+  "elementCount": {
+    "message": "$COUNT$ elements",
+    "description": "Element count text",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "3"
+      }
+    }
+  }
+}
