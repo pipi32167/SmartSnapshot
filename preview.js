@@ -48,152 +48,174 @@ function showStatus(message, type = "success") {
   }, 3000);
 }
 
-function pinRuntimeImageSource(doc) {
-  const images = Array.from(doc.querySelectorAll("img"));
-  images.forEach((img) => {
-    const runtimeSrc = img.currentSrc || img.src;
-    if (runtimeSrc) {
-      img.src = runtimeSrc;
-      img.removeAttribute("srcset");
-    }
-    img.removeAttribute("loading");
-    img.setAttribute("decoding", "sync");
-    img.setAttribute("fetchpriority", "high");
-  });
-}
+function enterCaptureOnlyLayout() {
+  const body = document.body;
+  const html = document.documentElement;
+  const header = document.querySelector(".header");
+  const status = document.getElementById("status");
+  const container = document.getElementById("previewContainer");
+  const wrapper = container?.querySelector(".preview-wrapper");
 
-async function inlineImagesAsBlobUrls(doc) {
-  const images = Array.from(doc.querySelectorAll("img"));
-  const blobUrls = [];
-
-  await Promise.all(
-    images.map(async (img) => {
-      const src = img.currentSrc || img.src;
-      if (!src || src.startsWith("data:") || src.startsWith("blob:")) {
-        return;
-      }
-
-      try {
-        const response = await fetch(src, {
-          method: "GET",
-          credentials: "omit",
-          cache: "force-cache",
-        });
-        if (!response.ok) return;
-
-        const blob = await response.blob();
-        if (!blob.type.startsWith("image/")) return;
-
-        const blobUrl = URL.createObjectURL(blob);
-        blobUrls.push(blobUrl);
-
-        img.src = blobUrl;
-        img.removeAttribute("srcset");
-      } catch (e) {
-        // 静默失败：保留原始地址
-      }
-    }),
-  );
-
-  return () => {
-    blobUrls.forEach((url) => URL.revokeObjectURL(url));
+  const snapshot = {
+    htmlStyle: html.getAttribute("style") || "",
+    bodyStyle: body.getAttribute("style") || "",
+    scrollX: window.scrollX,
+    scrollY: window.scrollY,
+    headerDisplay: header?.style.display || "",
+    statusDisplay: status?.style.display || "",
+    containerStyle: container?.getAttribute("style") || "",
+    wrapperStyle: wrapper?.getAttribute("style") || "",
   };
-}
 
-async function waitForImagesReady(doc) {
-  const images = Array.from(doc.querySelectorAll("img"));
-  await Promise.all(
-    images.map((img) => {
-      return new Promise((resolve) => {
-        if (img.complete && img.naturalWidth > 0) {
-          if (typeof img.decode === "function") {
-            img
-              .decode()
-              .catch(() => {})
-              .finally(resolve);
-          } else {
-            resolve();
-          }
-          return;
-        }
+  if (header) header.style.display = "none";
+  if (status) status.style.display = "none";
 
-        const onLoad = () => {
-          cleanup();
-          resolve();
-        };
-        const onError = () => {
-          cleanup();
-          resolve();
-        };
-        const cleanup = () => {
-          img.removeEventListener("load", onLoad);
-          img.removeEventListener("error", onError);
-        };
+  html.style.margin = "0";
+  html.style.padding = "0";
+  html.style.background = "#fff";
+  html.style.overflow = "hidden";
 
-        img.addEventListener("load", onLoad);
-        img.addEventListener("error", onError);
-        setTimeout(() => {
-          cleanup();
-          resolve();
-        }, 4000);
-      });
-    }),
-  );
-}
+  body.style.margin = "0";
+  body.style.padding = "0";
+  body.style.background = "#fff";
+  body.style.overflow = "hidden";
 
-/**
- * 渲染截图为 canvas（供预览和保存复用）
- */
-async function renderScreenshotCanvas() {
-  if (!previewData) {
-    throw new Error("没有可导出的内容");
+  if (container) {
+    container.style.position = "fixed";
+    container.style.left = "0";
+    container.style.top = "0";
+    container.style.maxWidth = "none";
+    container.style.margin = "0";
+    container.style.padding = "0";
+    container.style.minHeight = "0";
+    container.style.borderRadius = "0";
+    container.style.boxShadow = "none";
+    container.style.overflow = "hidden";
+    container.style.display = "block";
+    container.style.width = (previewData?.width || 0) + "px";
+    container.style.height = (previewData?.height || 0) + "px";
+  }
+
+  if (wrapper) {
+    wrapper.style.margin = "0";
+    wrapper.style.boxShadow = "none";
+    wrapper.style.width = (previewData?.width || 0) + "px";
+    wrapper.style.height = (previewData?.height || 0) + "px";
   }
 
   const iframe = document.getElementById("previewFrame");
-  const doc = iframe.contentDocument || iframe.contentWindow.document;
-
-  pinRuntimeImageSource(doc);
-
-  let cleanupBlobUrls = () => {};
-  cleanupBlobUrls = await inlineImagesAsBlobUrls(doc);
-
-  await waitForImagesReady(doc);
-
-  await new Promise((r) => setTimeout(r, 500));
-
-  const container = doc.querySelector(".smartsnapshot-container");
-  if (!container) {
-    throw new Error("未找到内容容器");
+  if (iframe) {
+    iframe.style.width = (previewData?.width || 0) + "px";
+    iframe.style.height = (previewData?.height || 0) + "px";
   }
 
+  window.scrollTo(0, 0);
+  return snapshot;
+}
+
+function exitCaptureOnlyLayout(snapshot) {
+  if (!snapshot) return;
+
+  const body = document.body;
+  const html = document.documentElement;
+  const header = document.querySelector(".header");
+  const status = document.getElementById("status");
+  const container = document.getElementById("previewContainer");
+  const wrapper = container?.querySelector(".preview-wrapper");
+
+  if (snapshot.htmlStyle) {
+    html.setAttribute("style", snapshot.htmlStyle);
+  } else {
+    html.removeAttribute("style");
+  }
+
+  if (snapshot.bodyStyle) {
+    body.setAttribute("style", snapshot.bodyStyle);
+  } else {
+    body.removeAttribute("style");
+  }
+
+  if (header) header.style.display = snapshot.headerDisplay;
+  if (status) status.style.display = snapshot.statusDisplay;
+
+  if (container) {
+    if (snapshot.containerStyle) {
+      container.setAttribute("style", snapshot.containerStyle);
+    } else {
+      container.removeAttribute("style");
+    }
+  }
+
+  if (wrapper) {
+    if (snapshot.wrapperStyle) {
+      wrapper.setAttribute("style", snapshot.wrapperStyle);
+    } else {
+      wrapper.removeAttribute("style");
+    }
+  }
+
+  window.scrollTo(snapshot.scrollX, snapshot.scrollY);
+}
+
+async function waitForCaptureStable() {
+  await new Promise((resolve) => requestAnimationFrame(resolve));
+  await new Promise((resolve) => requestAnimationFrame(resolve));
+  await new Promise((resolve) => setTimeout(resolve, 120));
+}
+
+function captureTabDataUrl() {
+  return new Promise((resolve, reject) => {
+    chrome.runtime.sendMessage({ action: "captureTab" }, (response) => {
+      if (chrome.runtime.lastError) {
+        reject(new Error(chrome.runtime.lastError.message));
+        return;
+      }
+      const dataUrl = typeof response === "string" ? response : response?.dataUrl;
+      if (!dataUrl) {
+        reject(new Error("截图失败：未获取到图像数据"));
+        return;
+      }
+      resolve(dataUrl);
+    });
+  });
+}
+
+function captureTabCroppedDataUrl(width, height) {
+  return new Promise((resolve, reject) => {
+    chrome.runtime.sendMessage(
+      { action: "captureTabCropped", width, height },
+      (response) => {
+        if (chrome.runtime.lastError) {
+          reject(new Error(chrome.runtime.lastError.message));
+          return;
+        }
+        const dataUrl = response?.dataUrl;
+        if (!dataUrl) {
+          reject(new Error(response?.error || "裁剪截图失败：未获取到图像数据"));
+          return;
+        }
+        resolve(dataUrl);
+      }
+    );
+  });
+}
+
+async function captureVisibleScreenshot() {
+  const snapshot = enterCaptureOnlyLayout();
   try {
+    await waitForCaptureStable();
+
+    const width = Math.max(1, Math.ceil(previewData?.width || 0));
+    const height = Math.max(1, Math.ceil(previewData?.height || 0));
+
     try {
-      return await html2canvas(container, {
-        scale: 2,
-        backgroundColor: "#ffffff",
-        logging: false,
-        useCORS: true,
-        allowTaint: true,
-        imageTimeout: 10000,
-        foreignObjectRendering: false,
-        scrollX: 0,
-        scrollY: 0,
-      });
-    } catch (e) {
-      return await html2canvas(container, {
-        scale: 2,
-        backgroundColor: "#ffffff",
-        logging: false,
-        useCORS: true,
-        allowTaint: true,
-        imageTimeout: 10000,
-        foreignObjectRendering: true,
-        scrollX: 0,
-        scrollY: 0,
-      });
+      return await captureTabCroppedDataUrl(width, height);
+    } catch (error) {
+      console.warn("裁剪截图失败，回退到可视区截图:", error);
+      return await captureTabDataUrl();
     }
   } finally {
-    cleanupBlobUrls();
+    exitCaptureOnlyLayout(snapshot);
   }
 }
 
@@ -221,8 +243,7 @@ async function previewScreenshot() {
   setActionButtonsBusy(true, "生成预览中...");
 
   try {
-    const canvas = await renderScreenshotCanvas();
-    const imageDataUrl = canvas.toDataURL("image/png");
+    const imageDataUrl = await captureVisibleScreenshot();
     const win = window.open("", "_blank");
 
     if (!win) {
@@ -274,22 +295,15 @@ async function saveScreenshot() {
   setActionButtonsBusy(true, "生成中...");
 
   try {
-    const canvas = await renderScreenshotCanvas();
-
-    // 转换为 blob 并下载
-    const blob = await new Promise((resolve) =>
-      canvas.toBlob(resolve, "image/png"),
-    );
-    const url = URL.createObjectURL(blob);
+    const imageDataUrl = await captureVisibleScreenshot();
 
     const a = document.createElement("a");
-    a.href = url;
+    a.href = imageDataUrl;
     a.download = previewData.filename;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
 
-    URL.revokeObjectURL(url);
     showStatus("截图已保存");
   } catch (error) {
     console.error("保存失败:", error);

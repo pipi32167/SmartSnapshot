@@ -6,6 +6,49 @@
 // Track active selection state per tab
 const activeTabs = new Set();
 
+async function captureVisibleTabDataUrl() {
+  return chrome.tabs.captureVisibleTab({
+    format: 'png',
+    quality: 100
+  });
+}
+
+async function captureTabCroppedWithDebugger(tabId, width, height) {
+  const target = { tabId };
+  const clipWidth = Math.max(1, Math.floor(Number(width) || 0));
+  const clipHeight = Math.max(1, Math.floor(Number(height) || 0));
+
+  if (!clipWidth || !clipHeight) {
+    throw new Error('Invalid clip size');
+  }
+
+  await chrome.debugger.attach(target, '1.3');
+  try {
+    const result = await chrome.debugger.sendCommand(target, 'Page.captureScreenshot', {
+      format: 'png',
+      fromSurface: true,
+      captureBeyondViewport: true,
+      clip: {
+        x: 0,
+        y: 0,
+        width: clipWidth,
+        height: clipHeight,
+        scale: 1
+      }
+    });
+
+    if (!result?.data) {
+      throw new Error('No screenshot data returned');
+    }
+
+    return `data:image/png;base64,${result.data}`;
+  } finally {
+    try {
+      await chrome.debugger.detach(target);
+    } catch (e) {}
+  }
+}
+
 /**
  * Handle extension icon click
  * Toggles selection mode on the active tab
@@ -84,16 +127,37 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   
   if (request.action === 'captureTab') {
     // Capture the active tab
-    chrome.tabs.captureVisibleTab({
-      format: 'png',
-      quality: 100
-    }).then(dataUrl => {
+    captureVisibleTabDataUrl().then(dataUrl => {
       sendResponse(dataUrl);
     }).catch(error => {
       console.error('Capture failed:', error);
       sendResponse(null);
     });
     return true; // Keep message channel open for async
+  }
+
+  if (request.action === 'captureTabCropped') {
+    if (!sender.tab?.id) {
+      sendResponse({ dataUrl: null, method: null, error: 'No sender tab id' });
+      return false;
+    }
+
+    captureTabCroppedWithDebugger(sender.tab.id, request.width, request.height)
+      .then((dataUrl) => {
+        sendResponse({ dataUrl, method: 'cdp' });
+      })
+      .catch(async (error) => {
+        console.warn('Cropped capture failed, fallback to captureVisibleTab:', error);
+        try {
+          const dataUrl = await captureVisibleTabDataUrl();
+          sendResponse({ dataUrl, method: 'captureVisibleTab', fallback: true });
+        } catch (fallbackError) {
+          console.error('Capture fallback failed:', fallbackError);
+          sendResponse({ dataUrl: null, method: null, error: fallbackError.message });
+        }
+      });
+
+    return true;
   }
   
   if (request.action === 'downloadScreenshot') {
