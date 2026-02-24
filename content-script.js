@@ -247,7 +247,7 @@
     if (element.id) return "#" + element.id;
     const path = [];
     let current = element;
-    while (current && current !== document.body) {
+    while (current && current !== document.body && current !== document.documentElement) {
       let selector = current.tagName.toLowerCase();
       if (current.id) {
         selector += "#" + current.id;
@@ -262,16 +262,10 @@
         if (classes.length > 0) selector += "." + classes.join(".");
       }
       const siblings = Array.from(current.parentNode?.children || []);
-      const sameTagSiblings = siblings.filter(
-        (s) => s.tagName === current.tagName,
-      );
-      if (sameTagSiblings.length > 1) {
-        const index = siblings.indexOf(current) + 1;
-        selector += ":nth-child(" + index + ")";
-      }
+      const index = siblings.indexOf(current) + 1;
+      selector += ":nth-child(" + index + ")";
       path.unshift(selector);
       current = current.parentNode;
-      if (path.length > 5) break;
     }
     return path.join(" > ");
   }
@@ -283,12 +277,11 @@
       if (savedSelectors && Array.isArray(savedSelectors)) {
         savedSelectors.forEach((selector) => {
           try {
-            document.querySelectorAll(selector).forEach((el) => {
-              if (el && !isDescendantOfSelected(el)) {
-                selectElement(el);
-                state.highlightedElements.add(el);
-              }
-            });
+            const el = document.querySelector(selector);
+            if (el && !isDescendantOfSelected(el)) {
+              selectElement(el);
+              state.highlightedElements.add(el);
+            }
           } catch (e) {
             console.warn("SmartSnapshot: Failed to load saved selector", e);
           }
