@@ -74,6 +74,10 @@ function openResultModal(imageDataUrl) {
   const modal = document.getElementById("resultModal");
   const image = document.getElementById("resultImage");
   if (!modal || !image) return;
+  // Keep the screenshot at its real output width so preview does not stretch.
+  const outputWidth = Math.ceil(previewData?.width || 0);
+  image.style.width = outputWidth > 0 ? outputWidth + "px" : "";
+  image.style.height = "auto";
   image.src = imageDataUrl;
   modal.classList.add("show");
 }

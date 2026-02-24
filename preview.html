@@ -177,15 +177,19 @@
 
     .modal-body {
       background: #fafafa;
-      overflow: auto;
+      overflow-y: auto;
+      overflow-x: auto;
       padding: 20px;
       display: flex;
       justify-content: center;
+      align-items: flex-start;
     }
 
     .modal-body img {
-      max-width: 100%;
+      width: auto;
+      max-width: none;
       height: auto;
+      max-height: none;
       display: block;
       background: #fff;
       box-shadow: 0 6px 22px rgba(0, 0, 0, 0.16);
