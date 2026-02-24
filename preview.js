@@ -131,6 +131,167 @@ function captureTabCroppedDataUrl(width, height) {
   });
 }
 
+function captureTabCroppedSegmentDataUrl(x, y, width, height) {
+  return new Promise((resolve, reject) => {
+    chrome.runtime.sendMessage(
+      { action: "captureTabCroppedSegment", x, y, width, height },
+      (response) => {
+        if (chrome.runtime.lastError) {
+          reject(new Error(chrome.runtime.lastError.message));
+          return;
+        }
+        const dataUrl = response?.dataUrl;
+        if (!dataUrl) {
+          reject(
+            new Error(response?.error || "分段截图失败：未获取到图像数据"),
+          );
+          return;
+        }
+        resolve({ dataUrl });
+      },
+    );
+  });
+}
+
+function loadImage(dataUrl) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error("图像解码失败"));
+    image.src = dataUrl;
+  });
+}
+
+function getImageSignature(image, sx, sy, sw, sh) {
+  const sample = document.createElement("canvas");
+  sample.width = 16;
+  sample.height = 16;
+  const sampleCtx = sample.getContext("2d");
+  if (!sampleCtx) return "";
+
+  sampleCtx.drawImage(image, sx, sy, sw, sh, 0, 0, 16, 16);
+  const pixels = sampleCtx.getImageData(0, 0, 16, 16).data;
+  let hash = 2166136261;
+  for (let i = 0; i < pixels.length; i += 4) {
+    hash ^= pixels[i];
+    hash = (hash * 16777619) >>> 0;
+    hash ^= pixels[i + 1];
+    hash = (hash * 16777619) >>> 0;
+    hash ^= pixels[i + 2];
+    hash = (hash * 16777619) >>> 0;
+  }
+  return hash.toString(16);
+}
+
+async function captureSegmentWithRetry(x, y, width, height, previousSignature) {
+  const MAX_RETRY = 2;
+  let lastAttempt = null;
+
+  for (let attempt = 0; attempt <= MAX_RETRY; attempt += 1) {
+    const segment = await captureTabCroppedSegmentDataUrl(x, y, width, height);
+    const segmentImage = await loadImage(segment.dataUrl);
+    const signature = getImageSignature(
+      segmentImage,
+      0,
+      0,
+      segmentImage.naturalWidth || segmentImage.width,
+      segmentImage.naturalHeight || segmentImage.height,
+    );
+
+    const naturalWidth = segmentImage.naturalWidth || segmentImage.width;
+    const naturalHeight = segmentImage.naturalHeight || segmentImage.height;
+    const result = {
+      segmentImage,
+      signature,
+      ratioX: naturalWidth / width,
+      ratioY: naturalHeight / height,
+    };
+
+    if (signature !== previousSignature || !previousSignature || y === 0) {
+      return result;
+    }
+
+    lastAttempt = result;
+
+    // 出现疑似重复段时重试，避免偶发的错误帧被拼接进结果。
+    await new Promise((resolve) => setTimeout(resolve, 80));
+  }
+
+  // 有些页面会出现连续完全一致的区块，此时不再硬失败，直接接收最后一次结果。
+  console.warn(`Segment may be duplicated but accepted, y=${y}`);
+  if (lastAttempt) {
+    return lastAttempt;
+  }
+  throw new Error(`分段截图失败，y=${y}`);
+}
+
+async function captureScreenshotBySegments(width, height) {
+  const TILE_HEIGHT = 1200;
+  const OVERLAP = 64;
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+
+  if (!ctx) {
+    throw new Error("无法创建截图画布");
+  }
+
+  let previousSignature = "";
+  for (let outputY = 0; outputY < height; outputY += TILE_HEIGHT) {
+    const drawHeight = Math.min(TILE_HEIGHT, height - outputY);
+    const extraTop = outputY > 0 ? OVERLAP : 0;
+    const extraBottom = outputY + drawHeight < height ? OVERLAP : 0;
+    const requestY = Math.max(0, outputY - extraTop);
+    const requestHeight = Math.min(
+      height - requestY,
+      drawHeight + extraTop + extraBottom,
+    );
+    const sourceY = outputY - requestY;
+
+    const { segmentImage, signature, ratioX, ratioY } =
+      await captureSegmentWithRetry(
+      0,
+      requestY,
+      width,
+      requestHeight,
+      previousSignature,
+    );
+
+    const sourceXInImage = 0;
+    const sourceYInImage = Math.round(sourceY * ratioY);
+    const sourceWInImage = Math.min(
+      segmentImage.naturalWidth || segmentImage.width,
+      Math.round(width * ratioX),
+    );
+    const sourceHInImage = Math.min(
+      (segmentImage.naturalHeight || segmentImage.height) - sourceYInImage,
+      Math.round(drawHeight * ratioY),
+    );
+    if (sourceWInImage <= 0 || sourceHInImage <= 0) {
+      throw new Error(
+        `分段像素尺寸异常，y=${outputY}, src=${sourceWInImage}x${sourceHInImage}`,
+      );
+    }
+
+    // 分段带重叠，拼接时只取中间有效区域，降低接缝与重复风险。
+    ctx.drawImage(
+      segmentImage,
+      sourceXInImage,
+      sourceYInImage,
+      sourceWInImage,
+      sourceHInImage,
+      0,
+      outputY,
+      width,
+      drawHeight,
+    );
+    previousSignature = signature;
+  }
+
+  return canvas.toDataURL("image/png");
+}
+
 async function waitForCaptureStable() {
   await new Promise((resolve) => requestAnimationFrame(resolve));
   await new Promise((resolve) => requestAnimationFrame(resolve));
@@ -287,6 +448,14 @@ async function captureVisibleScreenshot() {
 
     const width = Math.max(1, Math.ceil(previewData?.width || 0));
     const height = Math.max(1, Math.ceil(previewData?.height || 0));
+
+    if (height > 3000) {
+      try {
+        return await captureScreenshotBySegments(width, height);
+      } catch (segmentError) {
+        console.warn("分段截图失败，回退到裁剪截图:", segmentError);
+      }
+    }
 
     try {
       return await captureTabCroppedDataUrl(width, height);
