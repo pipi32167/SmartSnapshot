@@ -19,8 +19,10 @@
     const fallbacks = {
       notificationCopied: 'Copied to clipboard',
       notificationCopyFailed: 'Copy failed',
+      notificationHtmlCopied: 'HTML copied to clipboard',
       markdownEmpty: 'No content to export',
-      btnCopy: 'Copy',
+      btnCopy: 'Copy Markdown',
+      btnCopyHtml: 'Copy HTML',
       btnDownload: 'Download',
       btnClose: 'Close',
     };
@@ -59,6 +61,7 @@
     const charCount = document.getElementById('char-count');
     const lineCount = document.getElementById('line-count');
     const btnCopy = document.getElementById('btn-copy');
+    const btnCopyHtml = document.getElementById('btn-copy-html');
     const btnDownload = document.getElementById('btn-download');
 
     const content = markdownData.markdownContent;
@@ -78,6 +81,7 @@
 
     // Enable buttons
     btnCopy.disabled = false;
+    btnCopyHtml.disabled = !(markdownData.rawHtmlContent && markdownData.rawHtmlContent.length > 0);
     btnDownload.disabled = false;
   }
 
@@ -112,6 +116,7 @@
    */
   function bindEvents() {
     document.getElementById('btn-copy')?.addEventListener('click', copyToClipboard);
+    document.getElementById('btn-copy-html')?.addEventListener('click', copyRawHtml);
     document.getElementById('btn-download')?.addEventListener('click', downloadMarkdown);
     document.getElementById('btn-close')?.addEventListener('click', () => window.close());
 
@@ -152,6 +157,40 @@
         textarea.select();
         document.execCommand('copy');
         showNotification(getMessage('notificationCopied'), 'success');
+      } catch (fallbackError) {
+        showNotification(getMessage('notificationCopyFailed'), 'error');
+      }
+    }
+  }
+
+  /**
+   * Copy raw HTML content to clipboard
+   */
+  async function copyRawHtml() {
+    if (!markdownData || !markdownData.rawHtmlContent || markdownData.rawHtmlContent.length === 0) {
+      showNotification('No HTML content available', 'error');
+      return;
+    }
+
+    // Join all HTML elements with a separator
+    const htmlContent = markdownData.rawHtmlContent.join('\n\n<!-- Element Separator -->\n\n');
+
+    try {
+      await navigator.clipboard.writeText(htmlContent);
+      showNotification(getMessage('notificationHtmlCopied'), 'success');
+    } catch (error) {
+      console.error('Copy HTML failed:', error);
+      // Fallback
+      try {
+        const textarea = document.createElement('textarea');
+        textarea.value = htmlContent;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        showNotification(getMessage('notificationHtmlCopied'), 'success');
       } catch (fallbackError) {
         showNotification(getMessage('notificationCopyFailed'), 'error');
       }

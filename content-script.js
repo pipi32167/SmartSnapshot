@@ -1066,6 +1066,14 @@
 
     try {
       const markdownContent = generateMarkdown();
+      
+      // 收集原始 HTML 内容（用于 debug）
+      const rawHtmlContent = [];
+      state.selectedElements.forEach((element) => {
+        const clone = cloneForExport(element);
+        rawHtmlContent.push(clone.outerHTML);
+      });
+      
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
       const filename = `smartsnapshot-${state.currentDomain}-${timestamp}.md`;
 
@@ -1074,6 +1082,7 @@
         {
           action: 'showMarkdown',
           markdownContent: markdownContent,
+          rawHtmlContent: rawHtmlContent,
           filename: filename,
         },
         (response) => {

@@ -80,6 +80,15 @@
       background: #e9ecef;
     }
 
+    .btn-debug {
+      background: #6c757d;
+      color: white;
+    }
+
+    .btn-debug:hover:not(:disabled) {
+      background: #5a6268;
+    }
+
     .btn:disabled {
       opacity: 0.6;
       cursor: not-allowed;
@@ -228,7 +237,11 @@
     <div class="header-actions">
       <button id="btn-copy" class="btn btn-primary" disabled>
         <span>📋</span>
-        <span>Copy</span>
+        <span>Copy Markdown</span>
+      </button>
+      <button id="btn-copy-html" class="btn btn-debug" disabled>
+        <span>📄</span>
+        <span>Copy HTML</span>
       </button>
       <button id="btn-download" class="btn btn-secondary" disabled>
         <span>💾</span>

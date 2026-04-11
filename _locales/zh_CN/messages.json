@@ -71,6 +71,14 @@
     "message": "复制失败",
     "description": "复制失败通知"
   },
+  "btnCopyHtml": {
+    "message": "📄 拷贝 HTML",
+    "description": "拷贝 HTML 按钮"
+  },
+  "notificationHtmlCopied": {
+    "message": "HTML 已复制到剪贴板",
+    "description": "HTML 复制成功通知"
+  },
   "previewTitle": {
     "message": "SmartSnapshot 预览",
     "description": "预览页面标题"

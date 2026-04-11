@@ -225,12 +225,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   if (request.action === "showMarkdown") {
     // 将 markdown 数据存入 storage，然后打开 markdown 页面
-    const { markdownContent, filename } = request;
+    const { markdownContent, rawHtmlContent, filename } = request;
 
     // 保存 markdown 数据到 storage
     chrome.storage.local
       .set({
-        markdownData: { markdownContent, filename },
+        markdownData: { markdownContent, rawHtmlContent, filename },
       })
       .then(() => {
         // 打开 markdown 页面

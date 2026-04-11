@@ -71,6 +71,14 @@
     "message": "Copy failed",
     "description": "Copy failed notification"
   },
+  "btnCopyHtml": {
+    "message": "📄 Copy HTML",
+    "description": "Copy HTML button"
+  },
+  "notificationHtmlCopied": {
+    "message": "HTML copied to clipboard",
+    "description": "HTML copy success notification"
+  },
   "previewTitle": {
     "message": "SmartSnapshot Preview",
     "description": "Preview page title"
