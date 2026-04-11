@@ -167,7 +167,7 @@
 
     .tab-content {
       flex: 1;
-      overflow: auto;
+      overflow: hidden;
       display: none;
       flex-direction: column;
     }
@@ -177,7 +177,14 @@
     }
 
     /* Raw view */
+    #tab-raw {
+      position: relative;
+    }
+
     textarea {
+      position: absolute;
+      top: 0;
+      left: 0;
       width: 100%;
       height: 100%;
       padding: 16px;
