@@ -35,6 +35,10 @@
     "message": "处理中...",
     "description": "截图按钮处理中状态"
   },
+  "btnMarkdown": {
+    "message": "📝 Markdown",
+    "description": "Markdown 导出按钮"
+  },
   "notificationSaved": {
     "message": "选择已保存",
     "description": "保存成功通知"
@@ -58,6 +62,14 @@
   "notificationScreenshotFailed": {
     "message": "截图失败",
     "description": "截图失败通知"
+  },
+  "notificationCopied": {
+    "message": "已复制到剪贴板",
+    "description": "复制成功通知"
+  },
+  "notificationCopyFailed": {
+    "message": "复制失败",
+    "description": "复制失败通知"
   },
   "previewTitle": {
     "message": "SmartSnapshot 预览",

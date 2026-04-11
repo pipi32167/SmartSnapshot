@@ -35,6 +35,10 @@
     "message": "Processing...",
     "description": "Screenshot button processing state"
   },
+  "btnMarkdown": {
+    "message": "📝 Markdown",
+    "description": "Markdown export button"
+  },
   "notificationSaved": {
     "message": "Selection saved",
     "description": "Save success notification"
@@ -58,6 +62,14 @@
   "notificationScreenshotFailed": {
     "message": "Screenshot failed",
     "description": "Screenshot failed notification"
+  },
+  "notificationCopied": {
+    "message": "Copied to clipboard",
+    "description": "Copy success notification"
+  },
+  "notificationCopyFailed": {
+    "message": "Copy failed",
+    "description": "Copy failed notification"
   },
   "previewTitle": {
     "message": "SmartSnapshot Preview",

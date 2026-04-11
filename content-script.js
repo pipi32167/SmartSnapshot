@@ -43,6 +43,10 @@
       btnForget: "忘记",
       btnScreenshot: "📷 截图",
       btnScreenshotProcessing: "处理中...",
+      btnMarkdown: "📝 Markdown",
+      notificationCopied: "已复制到剪贴板",
+      notificationCopyFailed: "复制失败",
+      notificationPreviewFailed: "预览打开失败",
       notificationSaved: "选择已保存",
       notificationSaveFailed: "保存失败",
       notificationForgotten: "已忘记此域名的选择",
@@ -120,7 +124,10 @@
           <button id="smartsnapshot-save" class="smartsnapshot-btn smartsnapshot-btn-primary" disabled>${getMessage("btnSave")}</button>
           <button id="smartsnapshot-forget" class="smartsnapshot-btn smartsnapshot-btn-secondary" disabled>${getMessage("btnForget")}</button>
         </div>
-        <button id="smartsnapshot-screenshot" class="smartsnapshot-btn smartsnapshot-btn-screenshot" disabled>${getMessage("btnScreenshot")}</button>
+        <div class="smartsnapshot-actions-secondary">
+          <button id="smartsnapshot-screenshot" class="smartsnapshot-btn smartsnapshot-btn-screenshot" disabled>${getMessage("btnScreenshot")}</button>
+          <button id="smartsnapshot-markdown" class="smartsnapshot-btn smartsnapshot-btn-markdown" disabled>${getMessage("btnMarkdown")}</button>
+        </div>
       </div>
     `;
     document.body.appendChild(sidebar);
@@ -140,6 +147,9 @@
     document
       .getElementById("smartsnapshot-screenshot")
       ?.addEventListener("click", takeScreenshot);
+    document
+      .getElementById("smartsnapshot-markdown")
+      ?.addEventListener("click", showMarkdown);
   }
 
   function removeSidebar() {
@@ -814,9 +824,273 @@
     const saveBtn = document.getElementById("smartsnapshot-save");
     const forgetBtn = document.getElementById("smartsnapshot-forget");
     const screenshotBtn = document.getElementById("smartsnapshot-screenshot");
+    const markdownBtn = document.getElementById("smartsnapshot-markdown");
     if (saveBtn) saveBtn.disabled = !has;
     if (forgetBtn) forgetBtn.disabled = !has;
     if (screenshotBtn) screenshotBtn.disabled = !has;
+    if (markdownBtn) markdownBtn.disabled = !has;
+  }
+
+  /**
+   * 将 HTML 元素转换为 Markdown 文本
+   */
+  function elementToMarkdown(element, baseUrl) {
+    const tagName = element.tagName.toLowerCase();
+    let result = '';
+
+    // 处理文本节点
+    if (element.nodeType === Node.TEXT_NODE) {
+      return element.textContent.trim();
+    }
+
+    // 跳过脚本和样式
+    if (tagName === 'script' || tagName === 'style' || tagName === 'noscript') {
+      return '';
+    }
+
+    // 处理特定标签
+    switch (tagName) {
+      case 'h1':
+        return `# ${getElementText(element)}\n\n`;
+      case 'h2':
+        return `## ${getElementText(element)}\n\n`;
+      case 'h3':
+        return `### ${getElementText(element)}\n\n`;
+      case 'h4':
+        return `#### ${getElementText(element)}\n\n`;
+      case 'h5':
+        return `##### ${getElementText(element)}\n\n`;
+      case 'h6':
+        return `###### ${getElementText(element)}\n\n`;
+      case 'p':
+        const text = processInlineElements(element, baseUrl).trim();
+        return text ? `${text}\n\n` : '';
+      case 'br':
+        return '\n';
+      case 'hr':
+        return '---\n\n';
+      case 'a':
+        const href = element.getAttribute('href');
+        const linkText = getElementText(element);
+        if (href) {
+          const absoluteUrl = resolveUrl(href, baseUrl);
+          // 如果是图片链接
+          const img = element.querySelector('img');
+          if (img) {
+            return `[![${img.alt || ''}](${resolveUrl(img.src, baseUrl)})](${absoluteUrl})`;
+          }
+          return `[${linkText}](${absoluteUrl})`;
+        }
+        return linkText;
+      case 'img':
+        const src = element.getAttribute('src');
+        const alt = element.getAttribute('alt') || '';
+        if (src) {
+          return `![${alt}](${resolveUrl(src, baseUrl)})`;
+        }
+        return '';
+      case 'ul':
+        return processList(element, baseUrl, '-') + '\n';
+      case 'ol':
+        return processList(element, baseUrl, '1.') + '\n';
+      case 'li':
+        // li 会在 processList 中处理
+        return '';
+      case 'blockquote':
+        const quoteText = getElementText(element).trim();
+        return quoteText ? `> ${quoteText.replace(/\n/g, '\n> ')}\n\n` : '';
+      case 'pre':
+        const codeBlock = element.querySelector('code');
+        if (codeBlock) {
+          const lang = codeBlock.className.match(/language-(\w+)/)?.[1] || '';
+          const code = codeBlock.textContent.trim();
+          return `\`\`\`${lang}\n${code}\n\`\`\`\n\n`;
+        }
+        return `\`\`\`\n${getElementText(element).trim()}\n\`\`\`\n\n`;
+      case 'code':
+        // 行内代码
+        if (element.parentElement?.tagName.toLowerCase() !== 'pre') {
+          return `\`${element.textContent}\``;
+        }
+        return element.textContent;
+      case 'table':
+        return processTable(element, baseUrl);
+      case 'strong':
+      case 'b':
+        return `**${processInlineElements(element, baseUrl)}**`;
+      case 'em':
+      case 'i':
+        return `*${processInlineElements(element, baseUrl)}*`;
+      case 'del':
+      case 's':
+        return `~~${processInlineElements(element, baseUrl)}~~`;
+      default:
+        // 递归处理子元素
+        return processChildren(element, baseUrl);
+    }
+  }
+
+  /**
+   * 获取元素的纯文本内容
+   */
+  function getElementText(element) {
+    return element.textContent.trim();
+  }
+
+  /**
+   * 处理行内元素
+   */
+  function processInlineElements(element, baseUrl) {
+    let result = '';
+    for (const child of element.childNodes) {
+      if (child.nodeType === Node.TEXT_NODE) {
+        result += child.textContent;
+      } else if (child.nodeType === Node.ELEMENT_NODE) {
+        result += elementToMarkdown(child, baseUrl);
+      }
+    }
+    return result;
+  }
+
+  /**
+   * 处理子元素
+   */
+  function processChildren(element, baseUrl) {
+    let result = '';
+    for (const child of element.childNodes) {
+      if (child.nodeType === Node.TEXT_NODE) {
+        result += child.textContent;
+      } else if (child.nodeType === Node.ELEMENT_NODE) {
+        result += elementToMarkdown(child, baseUrl);
+      }
+    }
+    return result;
+  }
+
+  /**
+   * 处理列表
+   */
+  function processList(list, baseUrl, marker) {
+    let result = '';
+    let index = 1;
+    for (const child of list.children) {
+      if (child.tagName.toLowerCase() === 'li') {
+        const prefix = marker === '1.' ? `${index}. ` : '- ';
+        const text = processInlineElements(child, baseUrl).trim();
+        // 处理嵌套列表
+        const nestedList = child.querySelector('ul, ol');
+        if (nestedList) {
+          const nestedContent = elementToMarkdown(nestedList, baseUrl);
+          result += prefix + text.replace(nestedContent, '').trim() + '\n';
+          result += nestedContent.split('\n').map(line => '  ' + line).join('\n') + '\n';
+        } else {
+          result += prefix + text + '\n';
+        }
+        index++;
+      }
+    }
+    return result;
+  }
+
+  /**
+   * 处理表格
+   */
+  function processTable(table, baseUrl) {
+    const rows = table.querySelectorAll('tr');
+    if (rows.length === 0) return '';
+
+    let result = '\n';
+    let isFirstRow = true;
+
+    for (const row of rows) {
+      const cells = row.querySelectorAll('th, td');
+      if (cells.length === 0) continue;
+
+      const cellTexts = [];
+      for (const cell of cells) {
+        cellTexts.push(processInlineElements(cell, baseUrl).trim() || ' ');
+      }
+
+      result += '| ' + cellTexts.join(' | ') + ' |\n';
+
+      if (isFirstRow) {
+        result += '|' + cellTexts.map(() => ' --- |').join('') + '\n';
+        isFirstRow = false;
+      }
+    }
+
+    return result + '\n';
+  }
+
+  /**
+   * 解析相对 URL 为绝对 URL
+   */
+  function resolveUrl(url, baseUrl) {
+    if (!url) return '';
+    if (url.startsWith('data:') || url.startsWith('http://') || url.startsWith('https://')) {
+      return url;
+    }
+    try {
+      return new URL(url, baseUrl).href;
+    } catch (e) {
+      return url;
+    }
+  }
+
+  /**
+   * 生成选中元素的 Markdown 内容
+   */
+  function generateMarkdown() {
+    const baseUrl = window.location.href;
+    let markdown = '';
+
+    // 添加来源信息
+    markdown += `# ${document.title}\n\n`;
+    markdown += `> 来源: [${window.location.hostname}](${baseUrl})\n\n`;
+    markdown += `---\n\n`;
+
+    state.selectedElements.forEach((element, index) => {
+      const clone = element.cloneNode(true);
+      markdown += elementToMarkdown(clone, baseUrl);
+      markdown += '\n---\n\n';
+    });
+
+    return markdown.trim();
+  }
+
+  /**
+   * 显示 Markdown 导出页面
+   */
+  async function showMarkdown() {
+    if (state.selectedElements.size === 0) return;
+
+    try {
+      const markdownContent = generateMarkdown();
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+      const filename = `smartsnapshot-${state.currentDomain}-${timestamp}.md`;
+
+      // 发送给 background 打开 markdown 页面
+      chrome.runtime.sendMessage(
+        {
+          action: 'showMarkdown',
+          markdownContent: markdownContent,
+          filename: filename,
+        },
+        (response) => {
+          if (chrome.runtime.lastError) {
+            console.error('SmartSnapshot: Runtime error', chrome.runtime.lastError);
+            showNotification(getMessage('notificationPreviewFailed'), 'error');
+          } else if (!response?.success) {
+            showNotification(getMessage('notificationPreviewFailed'), 'error');
+          } else {
+            showNotification(getMessage('notificationPreviewOpened'));
+          }
+        },
+      );
+    } catch (error) {
+      console.error('Markdown export failed:', error);
+      showNotification(getMessage('notificationScreenshotFailed') + ': ' + error.message, 'error');
+    }
   }
 
   /**

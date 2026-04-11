@@ -231,6 +231,11 @@
   gap: 8px;
 }
 
+.smartsnapshot-actions-secondary {
+  display: flex;
+  gap: 8px;
+}
+
 /* Buttons */
 .smartsnapshot-btn {
   padding: 8px 12px;
@@ -277,6 +282,18 @@
 
 .smartsnapshot-btn-screenshot:hover:not(:disabled) {
   background: #218838;
+}
+
+.smartsnapshot-btn-markdown {
+  background: #6c5ce7;
+  color: white;
+  padding: 10px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.smartsnapshot-btn-markdown:hover:not(:disabled) {
+  background: #5b4cdb;
 }
 
 /* Notification */

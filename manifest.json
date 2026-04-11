@@ -36,7 +36,9 @@
         "styles.css",
         "html2canvas.min.js",
         "preview.html",
-        "preview.js"
+        "preview.js",
+        "markdown.html",
+        "markdown.js"
       ],
       "matches": ["<all_urls>"]
     }

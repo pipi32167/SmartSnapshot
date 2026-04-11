@@ -223,5 +223,30 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true; // Keep message channel open for async
   }
 
+  if (request.action === "showMarkdown") {
+    // 将 markdown 数据存入 storage，然后打开 markdown 页面
+    const { markdownContent, filename } = request;
+
+    // 保存 markdown 数据到 storage
+    chrome.storage.local
+      .set({
+        markdownData: { markdownContent, filename },
+      })
+      .then(() => {
+        // 打开 markdown 页面
+        const markdownUrl = chrome.runtime.getURL("markdown.html");
+        return chrome.tabs.create({ url: markdownUrl });
+      })
+      .then(() => {
+        sendResponse({ success: true });
+      })
+      .catch((error) => {
+        console.error("Failed to open markdown:", error);
+        sendResponse({ success: false, error: error.message });
+      });
+
+    return true; // Keep message channel open for async
+  }
+
   return false;
 });
