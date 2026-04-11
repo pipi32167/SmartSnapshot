@@ -72,7 +72,6 @@
     const textarea = document.getElementById('markdown-content');
     const fileInfo = document.getElementById('file-info');
     const charCount = document.getElementById('char-count');
-    const lineCount = document.getElementById('line-count');
     const btnCopy = document.getElementById('btn-copy');
     const btnCopyHtml = document.getElementById('btn-copy-html');
     const btnDownload = document.getElementById('btn-download');
@@ -88,9 +87,6 @@
     fileInfo.textContent = filename;
     fileInfo.className = 'filename';
     charCount.textContent = `${content.length.toLocaleString()} characters`;
-
-    const lines = content.split('\n').length;
-    lineCount.textContent = `${lines} line${lines !== 1 ? 's' : ''}`;
 
     // Enable buttons
     btnCopy.disabled = false;
