@@ -79,6 +79,14 @@
     "message": "HTML copied to clipboard",
     "description": "HTML copy success notification"
   },
+  "tabRaw": {
+    "message": "Raw",
+    "description": "Raw text tab"
+  },
+  "tabPreview": {
+    "message": "Preview",
+    "description": "Preview tab"
+  },
   "previewTitle": {
     "message": "SmartSnapshot Preview",
     "description": "Preview page title"

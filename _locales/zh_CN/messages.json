@@ -79,6 +79,14 @@
     "message": "HTML 已复制到剪贴板",
     "description": "HTML 复制成功通知"
   },
+  "tabRaw": {
+    "message": "原始文本",
+    "description": "原始文本标签"
+  },
+  "tabPreview": {
+    "message": "预览",
+    "description": "预览标签"
+  },
   "previewTitle": {
     "message": "SmartSnapshot 预览",
     "description": "预览页面标题"
