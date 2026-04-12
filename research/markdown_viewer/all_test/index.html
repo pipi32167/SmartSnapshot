@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Markdown Viewer 测试导航</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 40px;
+      color: white;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .subtitle {
+      font-size: 1.1rem;
+      opacity: 0.9;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+      transition: all 0.3s ease;
+      cursor: pointer;
+      text-decoration: none;
+      color: inherit;
+      display: block;
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+    }
+
+    .card-title {
+      font-size: 1.3rem;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .card-subtitle {
+      font-size: 0.9rem;
+      color: #666;
+    }
+
+    .stats {
+      display: flex;
+      gap: 16px;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid #eee;
+    }
+
+    .stat {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .stat-value {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .stat-label {
+      font-size: 0.75rem;
+      color: #888;
+      text-transform: uppercase;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      margin-top: 8px;
+    }
+
+    .badge-recommended {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .badge-popular {
+      background: #cce5ff;
+      color: #004085;
+    }
+
+    .badge-minimal {
+      background: #e2e3e5;
+      color: #383d41;
+    }
+
+    .badge-legacy {
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    footer {
+      text-align: center;
+      margin-top: 40px;
+      color: rgba(255,255,255,0.8);
+      font-size: 0.9rem;
+    }
+
+    footer a {
+      color: white;
+      text-decoration: underline;
+    }
+
+    /* Card specific colors */
+    .card-marked .icon { background: #f59e0b; }
+    .card-markdown-it .icon { background: #3b82f6; }
+    .card-remark .icon { background: #8b5cf6; }
+    .card-micromark .icon { background: #10b981; }
+    .card-showdown .icon { background: #6b7280; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>📝 Markdown Viewer 测试导航</h1>
+      <p class="subtitle">5 个主流 Markdown 渲染库对比测试</p>
+    </header>
+
+    <div class="grid">
+      <!-- marked.js -->
+      <a href="../marked_test/test.html" class="card card-marked">
+        <div class="card-header">
+          <div class="icon">⚡</div>
+          <div>
+            <div class="card-title">marked.js</div>
+            <div class="card-subtitle">高速、零依赖</div>
+          </div>
+        </div>
+        <span class="badge badge-recommended">⭐ 推荐用于 Chrome 扩展</span>
+        <div class="stats">
+          <div class="stat">
+            <span class="stat-value">25KB</span>
+            <span class="stat-label">体积</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value">33k+</span>
+            <span class="stat-label">Stars</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value">零依赖</span>
+            <span class="stat-label">依赖</span>
+          </div>
+        </div>
+      </a>
+
+      <!-- markdown-it -->
+      <a href="../markdown_it_test/test.html" class="card card-markdown-it">
+        <div class="card-header">
+          <div class="icon">🔒</div>
+          <div>
+            <div class="card-title">markdown-it</div>
+            <div class="card-subtitle">安全、插件丰富</div>
+          </div>
+        </div>
+        <span class="badge badge-popular">功能全面</span>
+        <div class="stats">
+          <div class="stat">
+            <span class="stat-value">45KB</span>
+            <span class="stat-label">体积</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value">18k+</span>
+            <span class="stat-label">Stars</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value">200+</span>
+            <span class="stat-label">插件</span>
+          </div>
+        </div>
+      </a>
+
+      <!-- remark -->
+      <a href="../remark_test/test.html" class="card card-remark">
+        <div class="card-header">
+          <div class="icon">🌲</div>
+          <div>
+            <div class="card-title">remark / unified</div>
+            <div class="card-subtitle">AST 操作、生态强大</div>
+          </div>
+        </div>
+        <span class="badge badge-popular">生态最强</span>
+        <div class="stats">
+          <div class="stat">
+            <span class="stat-value">80KB+</span>
+            <span class="stat-label">体积</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value">8k+</span>
+            <span class="stat-label">Stars</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value">500+</span>
+            <span class="stat-label">插件</span>
+          </div>
+        </div>
+      </a>
+
+      <!-- micromark -->
+      <a href="../micromark_test/test.html" class="card card-micromark">
+        <div class="card-header">
+          <div class="icon">📦</div>
+          <div>
+            <div class="card-title">micromark</div>
+            <div class="card-subtitle">体积极小、流式处理</div>
+          </div>
+        </div>
+        <span class="badge badge-minimal">极简</span>
+        <div class="stats">
+          <div class="stat">
+            <span class="stat-value">15KB</span>
+            <span class="stat-label">体积</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value">2k+</span>
+            <span class="stat-label">Stars</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value">流式</span>
+            <span class="stat-label">处理</span>
+          </div>
+        </div>
+      </a>
+
+      <!-- showdown -->
+      <a href="../showdown_test/test.html" class="card card-showdown">
+        <div class="card-header">
+          <div class="icon">📜</div>
+          <div>
+            <div class="card-title">showdown.js</div>
+            <div class="card-subtitle">历史悠久、兼容性好</div>
+          </div>
+        </div>
+        <span class="badge badge-legacy">维护放缓</span>
+        <div class="stats">
+          <div class="stat">
+            <span class="stat-value">35KB</span>
+            <span class="stat-label">体积</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value">13k+</span>
+            <span class="stat-label">Stars</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value">2012</span>
+            <span class="stat-label">发布</span>
+          </div>
+        </div>
+      </a>
+    </div>
+
+    <footer>
+      <p>
+        📖 <a href="../README.md">查看研究报告</a> | 
+        🧪 <a href="../README_TESTING.md">测试指南</a>
+      </p>
+      <p style="margin-top: 10px; opacity: 0.7;">
+        提示：点击卡片进入对应测试页面，所有测试均支持实时预览
+      </p>
+    </footer>
+  </div>
+</body>
+</html>
