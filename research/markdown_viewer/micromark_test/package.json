@@ -1,0 +1,16 @@
+{
+  "name": "micromark-test",
+  "version": "1.0.0",
+  "description": "micromark 测试项目",
+  "type": "module",
+  "scripts": {
+    "test": "node demo.js",
+    "start": "npx serve ."
+  },
+  "dependencies": {
+    "micromark": "^4.0.0"
+  },
+  "devDependencies": {
+    "serve": "^14.2.0"
+  }
+}
