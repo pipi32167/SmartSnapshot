@@ -13,8 +13,10 @@ async function captureVisibleTabDataUrl() {
   });
 }
 
-async function captureTabCroppedWithDebugger(tabId, width, height) {
+async function captureTabClipWithDebugger(tabId, x, y, width, height) {
   const target = { tabId };
+  const clipX = Math.max(0, Math.floor(Number(x) || 0));
+  const clipY = Math.max(0, Math.floor(Number(y) || 0));
   const clipWidth = Math.max(1, Math.floor(Number(width) || 0));
   const clipHeight = Math.max(1, Math.floor(Number(height) || 0));
 
@@ -32,8 +34,8 @@ async function captureTabCroppedWithDebugger(tabId, width, height) {
         fromSurface: true,
         captureBeyondViewport: true,
         clip: {
-          x: 0,
-          y: 0,
+          x: clipX,
+          y: clipY,
           width: clipWidth,
           height: clipHeight,
           scale: 1,
@@ -151,7 +153,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       return false;
     }
 
-    captureTabCroppedWithDebugger(sender.tab.id, request.width, request.height)
+    captureTabClipWithDebugger(sender.tab.id, 0, 0, request.width, request.height)
       .then((dataUrl) => {
         sendResponse({ dataUrl, method: "cdp" });
       })
@@ -175,6 +177,37 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             error: fallbackError.message,
           });
         }
+      });
+
+    return true;
+  }
+
+  if (request.action === "captureTabCroppedSegment") {
+    if (!sender.tab?.id) {
+      sendResponse({ dataUrl: null, method: null, error: "No sender tab id" });
+      return false;
+    }
+
+    captureTabClipWithDebugger(
+      sender.tab.id,
+      request.x,
+      request.y,
+      request.width,
+      request.height,
+    )
+      .then((dataUrl) => {
+        sendResponse({
+          dataUrl,
+          method: "cdp-segment",
+        });
+      })
+      .catch((error) => {
+        console.error("Segment capture failed:", error);
+        sendResponse({
+          dataUrl: null,
+          method: null,
+          error: error.message,
+        });
       });
 
     return true;
