@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## 1.2.1 - 2026-04-13
+
+### Fixes
+- 
+
+## 1.2.0 - 2026-04-13
+
+### Features
+- Convert web components to Markdown
+
+### Fixes
+- 
+
 ## 1.1.0 - 2026-02-24
 
 ### Features
