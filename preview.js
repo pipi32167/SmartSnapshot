@@ -131,25 +131,43 @@ function captureTabCroppedDataUrl(width, height) {
   });
 }
 
-async function waitForCaptureStable() {
+async function waitForCaptureStable(delayMs = 800) {
+  // 等待当前页面字体加载完成
+  if (document.fonts) {
+    await document.fonts.ready;
+  }
+  // 强制同步布局，确保重排完成
+  document.body.offsetHeight;
+  // 多个 rAF 让浏览器完成绘制
   await new Promise((resolve) => requestAnimationFrame(resolve));
   await new Promise((resolve) => requestAnimationFrame(resolve));
-  await new Promise((resolve) => setTimeout(resolve, 120));
+  await new Promise((resolve) => requestAnimationFrame(resolve));
+  // 给复杂页面足够的渲染稳定时间（含 Web Fonts、图片解码等）
+  await new Promise((resolve) => setTimeout(resolve, delayMs));
+  // 最终 rAF 确保截图前最后一帧已绘制
+  await new Promise((resolve) => requestAnimationFrame(resolve));
 }
 
 async function waitForPreviewFrameReady() {
   const iframe = document.getElementById("previewFrame");
   if (!iframe) return;
 
-  const doc = iframe.contentDocument || iframe.contentWindow?.document;
-  if (!doc) return;
-
-  if (doc.readyState !== "complete") {
+  // 等待 iframe 加载完成（srcdoc 模式下 load 事件可靠触发）
+  if (!iframe.contentDocument || iframe.contentDocument.readyState !== "complete") {
     await new Promise((resolve) => {
       iframe.addEventListener("load", resolve, { once: true });
     });
   }
 
+  const doc = iframe.contentDocument || iframe.contentWindow?.document;
+  if (!doc) return;
+
+  // 等待 iframe 内字体加载完成
+  if (doc.fonts) {
+    await doc.fonts.ready.catch(() => {});
+  }
+
+  // 等待所有图片加载完成
   const images = Array.from(doc.querySelectorAll("img"));
   await Promise.all(
     images.map((img) => {
@@ -164,6 +182,9 @@ async function waitForPreviewFrameReady() {
       });
     }),
   );
+
+  // 额外等待一帧确保绘制完成
+  await new Promise((resolve) => requestAnimationFrame(resolve));
 }
 
 function enterCaptureOnlyLayout() {
@@ -175,6 +196,8 @@ function enterCaptureOnlyLayout() {
   const container = document.getElementById("previewContainer");
   const wrapper = container?.querySelector(".preview-wrapper");
 
+  const iframe = document.getElementById("previewFrame");
+
   const snapshot = {
     htmlStyle: html.getAttribute("style") || "",
     bodyStyle: body.getAttribute("style") || "",
@@ -185,6 +208,7 @@ function enterCaptureOnlyLayout() {
     modalDisplay: modal?.style.display || "",
     containerStyle: container?.getAttribute("style") || "",
     wrapperStyle: wrapper?.getAttribute("style") || "",
+    iframeStyle: iframe?.getAttribute("style") || "",
   };
 
   if (header) header.style.display = "none";
@@ -224,7 +248,6 @@ function enterCaptureOnlyLayout() {
     wrapper.style.height = (previewData?.height || 0) + "px";
   }
 
-  const iframe = document.getElementById("previewFrame");
   if (iframe) {
     iframe.style.width = (previewData?.width || 0) + "px";
     iframe.style.height = (previewData?.height || 0) + "px";
@@ -244,6 +267,7 @@ function exitCaptureOnlyLayout(snapshot) {
   const modal = document.getElementById("resultModal");
   const container = document.getElementById("previewContainer");
   const wrapper = container?.querySelector(".preview-wrapper");
+  const iframe = document.getElementById("previewFrame");
 
   if (snapshot.htmlStyle) {
     html.setAttribute("style", snapshot.htmlStyle);
@@ -277,23 +301,89 @@ function exitCaptureOnlyLayout(snapshot) {
     }
   }
 
+  if (iframe) {
+    if (snapshot.iframeStyle) {
+      iframe.setAttribute("style", snapshot.iframeStyle);
+    } else {
+      iframe.removeAttribute("style");
+    }
+  }
+
   window.scrollTo(snapshot.scrollX, snapshot.scrollY);
+}
+
+/**
+ * 检测截图是否大面积空白
+ * @param {string} dataUrl - 截图的 data URL
+ * @returns {Promise<boolean>} 是否空白
+ */
+function isImageMostlyBlank(dataUrl) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      const w = Math.min(img.naturalWidth, 120);
+      const h = Math.min(img.naturalHeight, 120);
+      canvas.width = w;
+      canvas.height = h;
+      ctx.drawImage(img, 0, 0, w, h);
+      try {
+        const imageData = ctx.getImageData(0, 0, w, h).data;
+        let whitePixels = 0;
+        const sampleStep = Math.max(1, Math.floor((w * h) / 16));
+        let checked = 0;
+        for (let i = 0; i < imageData.length; i += 4 * sampleStep) {
+          const r = imageData[i];
+          const g = imageData[i + 1];
+          const b = imageData[i + 2];
+          // 判断是否为接近白色的像素
+          if (r > 245 && g > 245 && b > 245) {
+            whitePixels++;
+          }
+          checked++;
+        }
+        // 如果 75% 以上采样点都是白色，认为是空白
+        resolve(checked > 0 && whitePixels / checked > 0.75);
+      } catch (e) {
+        resolve(false);
+      }
+    };
+    img.onerror = () => resolve(false);
+    img.src = dataUrl;
+  });
 }
 
 async function captureVisibleScreenshot() {
   const snapshot = enterCaptureOnlyLayout();
   try {
-    await waitForCaptureStable();
+    await waitForCaptureStable(800);
 
     const width = Math.max(1, Math.ceil(previewData?.width || 0));
     const height = Math.max(1, Math.ceil(previewData?.height || 0));
 
+    let dataUrl;
     try {
-      return await captureTabCroppedDataUrl(width, height);
+      dataUrl = await captureTabCroppedDataUrl(width, height);
     } catch (error) {
       console.warn("裁剪截图失败，回退到可视区截图:", error);
-      return await captureTabDataUrl();
+      dataUrl = await captureTabDataUrl();
     }
+
+    // 空白检测：如果截图大面积空白，增加等待时间后重试一次
+    const isBlank = await isImageMostlyBlank(dataUrl);
+    if (isBlank) {
+      console.warn("SmartSnapshot: 检测到空白截图，正在重试...");
+      await waitForCaptureStable(1500);
+      try {
+        dataUrl = await captureTabCroppedDataUrl(width, height);
+      } catch (error) {
+        console.warn("重试裁剪截图失败，回退到可视区截图:", error);
+        dataUrl = await captureTabDataUrl();
+      }
+    }
+
+    return dataUrl;
   } finally {
     exitCaptureOnlyLayout(snapshot);
   }
@@ -351,10 +441,8 @@ async function loadPreviewData() {
     `;
 
     const iframe = document.getElementById("previewFrame");
-    const doc = iframe.contentDocument || iframe.contentWindow.document;
-    doc.open();
-    doc.write(previewData.htmlContent);
-    doc.close();
+    // 使用 srcdoc 替代 doc.write()，获得更可靠的加载管线和 load 事件
+    iframe.srcdoc = previewData.htmlContent;
 
     await buildScreenshotAndShowModal();
   } catch (error) {
